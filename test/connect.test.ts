@@ -1,26 +1,42 @@
 import { getPublicKey } from 'nostr-tools';
-import {
-  Connect,
-  ConnectMessageType,
-  GetPublicKeyResponse,
-  Session,
-} from '../src/index';
+import { Connect, ConnectURI, NostrRPC } from '../src';
+import { sleep } from './utils';
 
-jest.setTimeout(5000);
+jest.setTimeout(8000);
+
+// web app (this is ephemeral and represents the currention session)
+const webSK =
+  '5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3';
+const webPK = getPublicKey(webSK);
+console.log('webPk', webPK);
+
+// mobile app with keys with the nostr identity
+const mobileSK =
+  'ed779ff047f99c95f732b22c9f8f842afb870c740aab591776ebc7b64e83cf6c';
+const mobilePK = getPublicKey(mobileSK);
+console.log('mobilePK', mobilePK);
+
+class MobileHandler extends NostrRPC {
+  async get_public_key(): Promise<string> {
+    return getPublicKey(this.self.secret);
+  }
+}
 
 describe('Nostr Connect', () => {
   it('connect', async () => {
-    let resolvePaired: (arg0: boolean) => void;
-    let resolveGetPublicKey: (arg0: boolean) => void;
-    // web app (this is ephemeral and represents the currention session)
-    const webSK =
-      '5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3';
-    const webPK = getPublicKey(webSK);
-    console.log('webPk', webPK);
+    const testHandler = jest.fn();
 
-    const sessionWeb = new Session({
+    // start listening for connect messages on the web app
+    const connect = new Connect({ secretKey: webSK });
+    connect.events.on('connect', testHandler);
+    await connect.init();
+
+    await sleep(100);
+
+    // send the connect message to the web app from the mobile
+    const connectURI = new ConnectURI({
       target: webPK,
-      relay: 'wss://nostr.vulpem.com',
+      relayURL: 'wss://nostr.vulpem.com',
       metadata: {
         name: 'My Website',
         description: 'lorem ipsum dolor sit amet',
@@ -28,60 +44,34 @@ describe('Nostr Connect', () => {
         icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png'],
       },
     });
-    sessionWeb.on(ConnectMessageType.PAIRED, (msg: any) => {
-      expect(msg).toBeDefined();
-      resolvePaired(true);
-    });
-    await sessionWeb.listen(webSK);
+    await connectURI.approve(mobileSK);
 
-    // mobile app (this can be a child key)
-    const sessionMobile = Session.fromConnectURI(sessionWeb.connectURI); // 'nostr://connect?target=...&metadata=...'
-    const mobileSK =
-      'ed779ff047f99c95f732b22c9f8f842afb870c740aab591776ebc7b64e83cf6c';
-    const mobilePK = getPublicKey(mobileSK);
-    console.log('mobilePK', mobilePK);
-    await sessionMobile.pair(mobileSK);
+    expect(testHandler).toBeCalledTimes(1);
+  });
 
-    // we define the behavior of the mobile app for each requests
-    sessionMobile.on(ConnectMessageType.GET_PUBLIC_KEY_REQUEST, async () => {
-      const message: GetPublicKeyResponse = {
-        type: ConnectMessageType.GET_PUBLIC_KEY_RESPONSE,
-        value: {
-          pubkey: mobilePK,
-        },
-      };
-      const event = await sessionMobile.eventToBeSentToTarget(
-        message,
-        mobileSK
-      );
-      await sessionMobile.sendEvent(event, mobileSK);
-      resolveGetPublicKey(true);
-    });
-    await sessionMobile.listen(mobileSK);
+  it('returns pubkey', async () => {
+    // start listening for connect messages on the mobile app
+    const remoteHandler = new MobileHandler({ secretKey: mobileSK });
+    await remoteHandler.listen();
 
-    // The WebApp send the request and wait for the response
-    // The WebApp fetch the public key sending request via session
+    await sleep(1000);
+
+    // start listening for connect messages on the web app
     const connect = new Connect({
-      session: sessionWeb,
-      targetPrivateKey: webSK,
+      secretKey: webSK,
+      target: mobilePK,
     });
-    const response = await connect.sendMessage({
-      type: ConnectMessageType.GET_PUBLIC_KEY_REQUEST,
-    });
-    expect(response).toBeDefined();
+    await connect.init();
 
-    return expect(
-      Promise.all([
-        new Promise(resolve => {
-          resolvePaired = resolve;
-        }),
-        new Promise(resolve => {
-          resolveGetPublicKey = resolve;
-        }),
-      ])
-    ).resolves.toEqual([true, true]);
+    await sleep(1000);
 
-    /*    
+    // send the get_public_key message to the mobile app from the web
+    const pubkey = await connect.getPublicKey();
+    expect(pubkey).toBe(webPK);
+  });
+});
+
+/*    
        expect(handler).toBeCalledTimes(1);
     expect(handler).toBeCalledWith({
       type: ConnectMessageType.PAIRED,
@@ -114,5 +104,3 @@ describe('Nostr Connect', () => {
         });
 
        */
-  });
-});

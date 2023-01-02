@@ -1,4 +1,5 @@
-import { NostrRPC } from '../src/request';
+import { NostrRPC } from '../src/rpc';
+import { sleep } from './utils';
 
 class Server extends NostrRPC {
   async ping(): Promise<string> {
@@ -6,7 +7,7 @@ class Server extends NostrRPC {
   }
 }
 
-jest.setTimeout(10000);
+jest.setTimeout(5000);
 
 describe('Nostr RPC', () => {
   it('starts a server', async () => {
@@ -20,7 +21,6 @@ describe('Nostr RPC', () => {
       secretKey:
         '5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3',
     });
-    console.log(`from: ` + client.self.pubkey, `to: ` + server.self.pubkey);
 
     await sleep(2000);
 
@@ -28,10 +28,6 @@ describe('Nostr RPC', () => {
       target: server.self.pubkey,
       request: { method: 'ping' },
     });
-    console.log(result);
+    expect(result).toBe('pong');
   });
 });
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}

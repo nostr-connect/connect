@@ -35,6 +35,7 @@ export class NostrRPC {
       secret: opts.secretKey,
     };
   }
+
   async call({
     target,
     request: { id = randomID(), method, params = [] },
@@ -46,28 +47,32 @@ export class NostrRPC {
       params?: any[];
     };
   }): Promise<any> {
+    // prepare request to be sent
+    const request = prepareRequest(id, method, params);
+    const event = await prepareEvent(this.self.secret, target, request);
+
     // connect to relay
     await this.relay.connect();
-    this.relay.on('error', () => {
-      throw new Error(`failed to connect to ${this.relay.url}`);
-    });
-
-    // prepare request to be sent
-    const body = prepareRequest(id, method, params);
-    const event = await prepareEvent(this.self.secret, target, body);
 
     // send request via relay
-    await new Promise<void>((resolve, reject) => {
-      const pub = this.relay.publish(event);
-      pub.on('failed', (reason: any) => {
-        reject(reason);
+    try {
+      await new Promise<void>(async (resolve, reject) => {
+        this.relay.on('error', () => {
+          reject(`failed to connect to ${this.relay.url}`);
+        });
+        const pub = this.relay.publish(event);
+        pub.on('failed', (reason: any) => {
+          reject(reason);
+        });
+        pub.on('seen', () => {
+          console.log(`seen`, event.id, request);
+          resolve();
+        });
       });
-      pub.on('seen', () => {
-        resolve();
-      });
-    });
+    } catch (err) {
+      throw err;
+    }
 
-    // TODO: reject after a timeout
     // waiting for response from remote
     return new Promise<void>((resolve, reject) => {
       const queries = [
@@ -75,10 +80,9 @@ export class NostrRPC {
           kinds: [4],
           authors: [target],
           '#p': [this.self.pubkey],
-          since: event.created_at - 1,
+          since: event.created_at,
         },
       ];
-
       let sub = this.relay.sub(queries);
       sub.on('event', async (event: Event) => {
         let payload;
@@ -100,8 +104,7 @@ export class NostrRPC {
         // ignore all the events that are not for this request
         if (payload.id !== id) return;
 
-        // unsubscribe from the stream
-        sub.unsub();
+        console.log(`response`, event.id, payload);
 
         // if the response is an error, reject the promise
         if (payload.error) {
@@ -113,25 +116,25 @@ export class NostrRPC {
           resolve(payload.result);
         }
       });
-
-      sub.on('eose', () => {
-        sub.unsub();
-      });
     });
   }
 
   async listen(): Promise<Sub> {
     await this.relay.connect();
     await new Promise<void>((resolve, reject) => {
-      this.relay.on('connect', resolve);
-      this.relay.on('error', reject);
+      this.relay.on('connect', () => {
+        resolve();
+      });
+      this.relay.on('error', () => {
+        reject(`not possible to connect to ${this.relay.url}`);
+      });
     });
 
     let sub = this.relay.sub([
       {
         kinds: [4],
         '#p': [this.self.pubkey],
-        since: now(),
+        since: now() - 1,
       },
     ]);
 
@@ -153,12 +156,15 @@ export class NostrRPC {
       if (!isValidRequest(payload)) return;
 
       // handle request
+      if (!this.hasOwnProperty(payload.method)) return;
       const response = await this.handleRequest(payload);
+
       const body = prepareResponse(
         response.id,
         response.result,
         response.error
       );
+
       const responseEvent = await prepareEvent(
         this.self.secret,
         event.pubkey,
@@ -166,8 +172,15 @@ export class NostrRPC {
       );
 
       // send response via relay
-      this.relay.publish(responseEvent);
-      // TODO: handle errors when event is not seen
+      await new Promise<void>((resolve, reject) => {
+        const pub = this.relay.publish(responseEvent);
+        pub.on('failed', (reason: any) => {
+          reject(reason);
+        });
+        pub.on('seen', () => {
+          resolve();
+        });
+      });
     });
 
     return sub;
@@ -250,7 +263,7 @@ export async function prepareEvent(
   return signedEvent;
 }
 
-function isValidRequest(payload: any): boolean {
+export function isValidRequest(payload: any): boolean {
   if (!payload) return false;
 
   const keys = Object.keys(payload);
@@ -264,7 +277,7 @@ function isValidRequest(payload: any): boolean {
   return true;
 }
 
-function isValidResponse(payload: any): boolean {
+export function isValidResponse(payload: any): boolean {
   if (!payload) return false;
 
   const keys = Object.keys(payload);

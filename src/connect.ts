@@ -1,142 +1,183 @@
-import { Event, nip04, relayInit } from 'nostr-tools';
-import { prepareRequest } from './event';
-import { Session, SessionStatus } from './session';
+import { getPublicKey, Event, nip04 } from 'nostr-tools';
+import { isValidRequest, NostrRPC } from './rpc';
+import EventEmitter from 'events';
 
-export interface ConnectMessage {
-  type: ConnectMessageType;
-  value?: any;
-  requestID?: string;
+export interface Metadata {
+  name: string;
+  url: string;
+  description?: string;
+  icons?: string[];
 }
 
-export enum ConnectMessageType {
-  PAIRED = 'paired',
-  UNPAIRED = 'unpaired',
-  GET_PUBLIC_KEY_REQUEST = 'getPublicKeyRequest',
-  GET_PUBLIC_KEY_RESPONSE = 'getPublicKeyResponse',
+export enum SessionStatus {
+  Paired = 'paired',
+  Unpaired = 'unpaired',
 }
 
-export interface PairingACK extends ConnectMessage {
-  type: ConnectMessageType.PAIRED;
-  value: {
-    pubkey: string;
-  };
-}
+export class ConnectURI {
+  status: SessionStatus = SessionStatus.Unpaired;
+  target: string;
+  metadata: Metadata;
+  relayURL: string;
 
-export interface PairingNACK extends ConnectMessage {
-  type: ConnectMessageType.UNPAIRED;
-}
+  static fromURI(uri: string): ConnectURI {
+    const url = new URL(uri);
+    const target = url.searchParams.get('target');
+    if (!target) {
+      throw new Error('Invalid connect URI: missing target');
+    }
+    const relay = url.searchParams.get('relay');
+    if (!relay) {
+      throw new Error('Invalid connect URI: missing relay');
+    }
+    const metadata = url.searchParams.get('metadata');
+    if (!metadata) {
+      throw new Error('Invalid connect URI: missing metadata');
+    }
 
-export interface GetPublicKeyRequest extends ConnectMessage {
-  type: ConnectMessageType.GET_PUBLIC_KEY_REQUEST;
-}
-
-export interface GetPublicKeyResponse extends ConnectMessage {
-  type: ConnectMessageType.GET_PUBLIC_KEY_RESPONSE;
-  value: {
-    pubkey: string;
-  };
-}
-
-export function responseTypeForRequestType(
-  type: ConnectMessageType
-): ConnectMessageType {
-  switch (type) {
-    case ConnectMessageType.GET_PUBLIC_KEY_REQUEST:
-      return ConnectMessageType.GET_PUBLIC_KEY_RESPONSE;
-    default:
-      throw new Error('Invalid request type');
+    try {
+      const md = JSON.parse(metadata);
+      return new ConnectURI({ target: target, metadata: md, relayURL: relay });
+    } catch (ignore) {
+      throw new Error('Invalid connect URI: metadata is not valid JSON');
+    }
   }
+
+  constructor({
+    target,
+    metadata,
+    relayURL,
+  }: {
+    target: string;
+    metadata: Metadata;
+    relayURL: string;
+  }) {
+    this.target = target;
+    this.metadata = metadata;
+    this.relayURL = relayURL;
+  }
+
+  toString() {
+    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(
+      this.metadata
+    )}&relay=${this.relayURL}`;
+  }
+
+  async approve(secretKey: string): Promise<void> {
+    const rpc = new NostrRPC({
+      relay: this.relayURL,
+      secretKey,
+    });
+    const response = await rpc.call({
+      target: this.target,
+      request: {
+        method: 'connect',
+        params: [getPublicKey(secretKey)],
+      },
+    });
+    if (!response) throw new Error('Invalid response from remote');
+
+    return;
+  }
+
+  async reject(secretKey: string): Promise<void> {
+    const rpc = new NostrRPC({
+      relay: this.relayURL,
+      secretKey,
+    });
+    const response = await rpc.call({
+      target: this.target,
+      request: {
+        method: 'disconnect',
+        params: [],
+      },
+    });
+    if (!response) throw new Error('Invalid response from remote');
+
+    return;
+  }
+}
+
+export enum ConnectStatus {
+  Connected = 'connected',
+  Disconnected = 'disconnected',
 }
 
 export class Connect {
-  session: Session;
-  private targetPrivateKey: string;
+  rpc: NostrRPC;
+  target?: string;
+  events = new EventEmitter();
+  status = ConnectStatus.Disconnected;
 
   constructor({
-    session,
-    targetPrivateKey,
+    target,
+    relay,
+    secretKey,
   }: {
-    session: Session;
-    targetPrivateKey: string;
+    secretKey: string;
+    target?: string;
+    relay?: string;
   }) {
-    this.session = session;
-    this.targetPrivateKey = targetPrivateKey;
+    this.rpc = new NostrRPC({ relay, secretKey });
+    if (target) {
+      this.target = target;
+      this.status = ConnectStatus.Connected;
+    }
   }
 
-  async sendMessage(message: ConnectMessage): Promise<ConnectMessage> {
-    if (this.session.status !== SessionStatus.PAIRED)
-      throw new Error('Session is not paired');
-    if (!this.session.target) throw new Error('Target is required');
-    if (!this.session.remote) throw new Error('Remote is required');
-
-    const { target, remote } = this.session;
-
-    // send request to remote
-    const { event, requestID } = await prepareRequest(
-      target,
-      remote,
-      message,
-      this.targetPrivateKey
-    );
-    console.log(`sending message ${message.type} with requestID ${requestID}`);
-    const id = await this.session.sendEvent(event, this.targetPrivateKey);
-    if (!id) throw new Error('Failed to send message ' + message.type);
-    console.log('sent message with nostr id', id);
-
-    const relay = relayInit(this.session.relay);
-    await relay.connect();
-
-    return new Promise((resolve, reject) => {
-      relay.on('error', () => {
-        reject(`failed to connect to ${relay.url}`);
-      });
-
-      // waiting for response from remote
-      let sub = relay.sub([
-        {
-          kinds: [4],
-          authors: [remote],
-          //since: now,
-          '#p': [target],
-          limit: 1,
-        },
-      ]);
-
-      sub.on('event', async (event: Event) => {
+  async init() {
+    const sub = await this.rpc.listen();
+    sub.on('event', async (event: Event) => {
+      let payload;
+      try {
         const plaintext = await nip04.decrypt(
-          this.targetPrivateKey,
+          this.rpc.self.secret,
           event.pubkey,
           event.content
         );
-        console.log('plaintext', plaintext);
-        console.log('requestID', requestID);
-        const payload = JSON.parse(plaintext);
-        if (!payload) return;
-        if (
-          !Object.keys(payload).includes('requestID') ||
-          !Object.keys(payload).includes('message')
-        )
-          return;
-        if (payload.requestID !== requestID) return;
-        const msg = payload.message as ConnectMessage;
-        const responseType = responseTypeForRequestType(msg.type);
-        if (msg.type !== responseType) return;
-        resolve(msg);
-      });
+        if (!plaintext) throw new Error('failed to decrypt event');
+        payload = JSON.parse(plaintext);
+      } catch (ignore) {
+        return;
+      }
+      // ignore all the events that are not NostrRPCRequest events
+      if (!isValidRequest(payload)) return;
 
-      sub.on('eose', () => {
-        sub.unsub();
-      });
+      // ignore all the request that are not connect
+      if (payload.method !== 'connect') return;
+
+      // ignore all the request that are not for us
+      if (!payload.params || payload.params.length !== 1) return;
+      const [pubkey] = payload.params;
+
+      this.status = ConnectStatus.Connected;
+      this.target = pubkey;
+      this.events.emit('connect', pubkey);
     });
   }
 
+  on(evt: 'connect' | 'disconnect', cb: (...args: any[]) => void) {
+    this.events.on(evt, cb);
+  }
+  off(evt: 'connect' | 'disconnect', cb: (...args: any[]) => void) {
+    this.events.off(evt, cb);
+  }
+
+  private isConnected() {
+    return this.status === ConnectStatus.Connected;
+  }
+
   async getPublicKey(): Promise<string> {
-    const response: ConnectMessage = await this.sendMessage({
-      type: ConnectMessageType.GET_PUBLIC_KEY_REQUEST,
+    if (!this.target || !this.isConnected()) throw new Error('Not connected');
+
+    const response = await this.rpc.call({
+      target: this.target,
+      request: {
+        method: 'get_public_key',
+        params: [],
+      },
     });
-    if (response.type !== ConnectMessageType.GET_PUBLIC_KEY_RESPONSE)
-      throw new Error('Invalid response type');
-    return response.value.pubkey;
+    return response as string;
   }
 
   async signEvent(_event: Event): Promise<Event> {
@@ -157,8 +198,4 @@ export class Connect {
       throw new Error('Not implemented');
     },
   };
-
-  async request(_opts: { method: string; params: any }): Promise<any> {
-    throw new Error('Not implemented');
-  }
 }

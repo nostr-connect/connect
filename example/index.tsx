@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 
 import * as ReactDOM from 'react-dom';
-import { NostrRPC } from '../src/request';
+import { NostrRPC } from '../src/rpc';
 
 
 class Server extends NostrRPC {
