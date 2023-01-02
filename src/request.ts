@@ -67,14 +67,17 @@ export class NostrRPC {
 
     return new Promise<void>((resolve, reject) => {
       // waiting for response from remote
-      // TODO: reject after a timeout
-      let sub = this.relay.sub([
+      const queries = [
         {
           kinds: [4],
-          authors: [this.target],
+          authors: [target],
           '#p': [this.self.pubkey],
         },
-      ]);
+      ];
+      // TODO: reject after a timeout
+      let sub = this.relay.sub(queries);
+
+      console.log('subscribing to', JSON.stringify(queries));
 
       sub.on('event', async (event: Event) => {
         let payload;
@@ -92,8 +95,7 @@ export class NostrRPC {
 
         // ignore all the events that are not NostrRPCResponse events
         if (!isValidResponse(payload)) return;
-
-        console.log(`received response from nostr id: ${event.id}`, payload);
+        console.log(`response: nostr id: ${event.id}`, payload);
 
         // ignore all the events that are not for this request
         if (payload.id !== id) return;
