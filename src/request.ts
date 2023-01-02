@@ -1,5 +1,15 @@
-import { relayInit, Relay, getEventHash, signEvent, validateEvent, verifySignature, getPublicKey, nip04, Event, Sub } from "nostr-tools";
-
+import {
+  relayInit,
+  Relay,
+  getEventHash,
+  signEvent,
+  validateEvent,
+  verifySignature,
+  getPublicKey,
+  nip04,
+  Event,
+  Sub,
+} from 'nostr-tools';
 
 export interface NostrRPCRequest {
   id: string;
@@ -12,37 +22,39 @@ export interface NostrRPCResponse {
   error: any;
 }
 
-
 export class NostrRPC {
   relay: Relay;
-  self: { pubkey: string, secret: string };
-  target: string;
+  self: { pubkey: string; secret: string };
+  // this is for implementing the response handlers for each method
+  [key: string]: any;
 
-  constructor(opts: { relay?: string, target: string, secretKey: string }) {
-    this.relay = relayInit(opts.relay || "wss://nostr.vulpem.com");
-    this.target = opts.target;
+  constructor(opts: { relay?: string; secretKey: string }) {
+    this.relay = relayInit(opts.relay || 'wss://nostr.vulpem.com');
     this.self = {
       pubkey: getPublicKey(opts.secretKey),
       secret: opts.secretKey,
     };
   }
-  async call({ 
-    id = randomID(),
-    method, 
-    params = [],
-  } : {
-    id?: string,
-    method: string,
-    params?: any[],
+  async call({
+    target,
+    request: { id = randomID(), method, params = [] },
+  }: {
+    target: string;
+    request: {
+      id?: string;
+      method: string;
+      params?: any[];
+    };
   }): Promise<any> {
-
     // connect to relay
     await this.relay.connect();
-    this.relay.on('error', () => { throw new Error(`failed to connect to ${this.relay.url}`) });
+    this.relay.on('error', () => {
+      throw new Error(`failed to connect to ${this.relay.url}`);
+    });
 
     // prepare request to be sent
     const body = prepareRequest(id, method, params);
-    const event = await prepareEvent(this.self.secret, this.target, body);
+    const event = await prepareEvent(this.self.secret, target, body);
 
     // send request via relay
     await new Promise<void>((resolve, reject) => {
@@ -51,35 +63,38 @@ export class NostrRPC {
       pub.on('seen', resolve);
     });
 
-    console.log(`sent request to nostr id: ${event.id}`, { id, method, params })
+    console.log(`request: nostr id: ${event.id}`, { id, method, params });
 
     return new Promise<void>((resolve, reject) => {
-
       // waiting for response from remote
       // TODO: reject after a timeout
-      let sub = this.relay.sub([{
-        kinds: [4],
-        authors: [this.target],
-        "#p": [this.self.pubkey],
-      }]);
-  
+      let sub = this.relay.sub([
+        {
+          kinds: [4],
+          authors: [this.target],
+          '#p': [this.self.pubkey],
+        },
+      ]);
+
       sub.on('event', async (event: Event) => {
-        let plaintext;
         let payload;
         try {
-          plaintext = await nip04.decrypt(this.self.secret, event.pubkey, event.content);
+          const plaintext = await nip04.decrypt(
+            this.self.secret,
+            event.pubkey,
+            event.content
+          );
+          if (!plaintext) throw new Error('failed to decrypt event');
           payload = JSON.parse(plaintext);
-        } catch(ignore) {
+        } catch (ignore) {
           return;
         }
 
         // ignore all the events that are not NostrRPCResponse events
-        if (!plaintext) return;
-        if (!payload) return;
-        if (!Object.keys(payload).includes('id') || !Object.keys(payload).includes('error') || !Object.keys(payload).includes('result')) return;
-        
-        console.log(`received response from nostr id: ${event.id}`, payload)
-        
+        if (!isValidResponse(payload)) return;
+
+        console.log(`received response from nostr id: ${event.id}`, payload);
+
         // ignore all the events that are not for this request
         if (payload.id !== id) return;
 
@@ -93,26 +108,13 @@ export class NostrRPC {
           resolve(payload.result);
         }
       });
-  
+
       sub.on('eose', () => {
         sub.unsub();
       });
     });
   }
-}
 
-export class NostrRPCServer {
-  relay: Relay;
-  self: { pubkey: string, secret: string };
-  [key: string]: any; // TODO: remove this [key: string]
-
-  constructor(opts: { relay?: string, secretKey: string }) {
-    this.relay = relayInit(opts?.relay || "wss://nostr.vulpem.com");
-    this.self = {
-      pubkey: getPublicKey(opts.secretKey),
-      secret: opts.secretKey,
-    };
-  }
   async listen(): Promise<Sub> {
     await this.relay.connect();
     await new Promise<void>((resolve, reject) => {
@@ -120,33 +122,45 @@ export class NostrRPCServer {
       this.relay.on('error', reject);
     });
 
-    let sub = this.relay.sub([{
-      kinds: [4],
-      "#p": [this.self.pubkey],
-      since: now(),
-    }]);
+    let sub = this.relay.sub([
+      {
+        kinds: [4],
+        '#p': [this.self.pubkey],
+        since: now(),
+      },
+    ]);
 
     sub.on('event', async (event: Event) => {
-      let plaintext;
       let payload;
       try {
-        plaintext = await nip04.decrypt(this.self.secret, event.pubkey, event.content);
+        const plaintext = await nip04.decrypt(
+          this.self.secret,
+          event.pubkey,
+          event.content
+        );
+        if (!plaintext) throw new Error('failed to decrypt event');
         payload = JSON.parse(plaintext);
-      } catch(ignore) {
+      } catch (ignore) {
         return;
       }
 
       // ignore all the events that are not NostrRPCRequest events
-      if (!plaintext) return;
-      if (!payload) return;
-      if (!Object.keys(payload).includes('id') || !Object.keys(payload).includes('method') || !Object.keys(payload).includes('params')) return;
-      
+      if (!isValidRequest(payload)) return;
+
       // handle request
       const response = await this.handleRequest(payload);
-      const body = prepareResponse(response.id, response.result, response.error);
-      const responseEvent = await prepareEvent(this.self.secret, event.pubkey, body);
+      const body = prepareResponse(
+        response.id,
+        response.result,
+        response.error
+      );
+      const responseEvent = await prepareEvent(
+        this.self.secret,
+        event.pubkey,
+        body
+      );
 
-      console.log('response to be sent', responseEvent)
+      console.log('response to be sent', responseEvent);
       // send response via relay
       const pub = this.relay.publish(responseEvent);
       pub.on('failed', console.error);
@@ -158,17 +172,20 @@ export class NostrRPCServer {
 
     return sub;
   }
-  async handleRequest(request: NostrRPCRequest): Promise<NostrRPCResponse> {
+
+  private async handleRequest(
+    request: NostrRPCRequest
+  ): Promise<NostrRPCResponse> {
     const { id, method, params } = request;
     let result = null;
     let error = null;
     try {
       result = await this[method](...params);
-    } catch(e: any) {
+    } catch (e) {
       if (e instanceof Error) {
         error = e.message;
       } else {
-        error = 'unknown error'
+        error = 'unknown error';
       }
     }
     return {
@@ -183,9 +200,15 @@ export function now(): number {
   return Math.floor(Date.now() / 1000);
 }
 export function randomID(): string {
-  return Math.random().toString().slice(2);
+  return Math.random()
+    .toString()
+    .slice(2);
 }
-export function prepareRequest(id: string, method: string, params: any[]): string {
+export function prepareRequest(
+  id: string,
+  method: string,
+  params: any[]
+): string {
   return JSON.stringify({
     id,
     method: method,
@@ -199,12 +222,12 @@ export function prepareResponse(id: string, result: any, error: any): string {
     error: error,
   });
 }
-export async function prepareEvent(secretKey: string, pubkey: string, content: string): Promise<Event> {    
-  const cipherText = await nip04.encrypt(
-    secretKey, 
-    pubkey, 
-    content,
-  );
+export async function prepareEvent(
+  secretKey: string,
+  pubkey: string,
+  content: string
+): Promise<Event> {
+  const cipherText = await nip04.encrypt(secretKey, pubkey, content);
 
   const event: Event = {
     kind: 4,
@@ -212,7 +235,7 @@ export async function prepareEvent(secretKey: string, pubkey: string, content: s
     pubkey: getPublicKey(secretKey),
     tags: [['p', pubkey]],
     content: cipherText,
-  }
+  };
 
   const id = getEventHash(event);
   const sig = signEvent(event, secretKey);
@@ -225,4 +248,32 @@ export async function prepareEvent(secretKey: string, pubkey: string, content: s
   }
 
   return signedEvent;
+}
+
+function isValidRequest(payload: any): boolean {
+  if (!payload) return false;
+
+  const keys = Object.keys(payload);
+  if (
+    !keys.includes('id') ||
+    !keys.includes('method') ||
+    !keys.includes('params')
+  )
+    return false;
+
+  return true;
+}
+
+function isValidResponse(payload: any): boolean {
+  if (!payload) return false;
+
+  const keys = Object.keys(payload);
+  if (
+    !keys.includes('id') ||
+    !keys.includes('result') ||
+    !keys.includes('error')
+  )
+    return false;
+
+  return true;
 }

@@ -7,15 +7,15 @@ import {
   relayInit,
   nip04,
   getPublicKey,
-} from 'nostr-tools'
+} from 'nostr-tools';
 import { ConnectMessage, ConnectMessageType, PairingACK } from './connect';
 import { prepareResponse } from './event';
 
 export interface Metadata {
-  name: string,
-  url: string,
-  description?: string
-  icons?: string[],
+  name: string;
+  url: string;
+  description?: string;
+  icons?: string[];
 }
 
 export enum SessionStatus {
@@ -56,7 +56,6 @@ export class Session {
     }
   }
 
-
   constructor({
     target,
     metadata,
@@ -64,20 +63,21 @@ export class Session {
   }: {
     target: string;
     relay: string;
-    metadata: Metadata
+    metadata: Metadata;
   }) {
     this.listeners = {};
     this.target = target;
     this.metadata = metadata;
     this.relay = relay;
-    this.connectURI = `nostr://connect?target=${this.target}&metadata=${JSON.stringify(this.metadata)}&relay=${this.relay}`;
+    this.connectURI = `nostr://connect?target=${
+      this.target
+    }&metadata=${JSON.stringify(this.metadata)}&relay=${this.relay}`;
   }
 
-  on(
-    type: ConnectMessageType,
-    cb: (value: any) => any
-  ): void {
-    const id = Math.random().toString().slice(2);
+  on(type: ConnectMessageType, cb: (value: any) => any): void {
+    const id = Math.random()
+      .toString()
+      .slice(2);
     this.listeners[id] = this.listeners[id] || emptyListeners();
     this.listeners[id][type].push(cb);
   }
@@ -96,22 +96,34 @@ export class Session {
     if (!secretKey) throw new Error('secret key is required');
     const pubkey = getPublicKey(secretKey);
 
-
-
     const relay = relayInit(this.relay);
     await relay.connect();
-    relay.on('connect', () => { console.log(`connected to ${relay.url}`) });
-    relay.on('error', () => { console.error(`failed to connect to ${relay.url}`) });
+    relay.on('connect', () => {
+      console.log(`connected to ${relay.url}`);
+    });
+    relay.on('error', () => {
+      console.error(`failed to connect to ${relay.url}`);
+    });
 
-    let sub = relay.sub([{
-      kinds: [4],
-      "#p": [pubkey],
-    }]);
+    let sub = relay.sub([
+      {
+        kinds: [4],
+        '#p': [pubkey],
+      },
+    ]);
     sub.on('event', async (event: Event) => {
-      const plaintext = await nip04.decrypt(secretKey, event.pubkey, event.content);
+      const plaintext = await nip04.decrypt(
+        secretKey,
+        event.pubkey,
+        event.content
+      );
       const payload = JSON.parse(plaintext);
       if (!payload) return;
-      if (!Object.keys(payload).includes('requestID') || !Object.keys(payload).includes('message')) return;
+      if (
+        !Object.keys(payload).includes('requestID') ||
+        !Object.keys(payload).includes('message')
+      )
+        return;
 
       const msg = payload.message as ConnectMessage;
 
@@ -143,25 +155,24 @@ export class Session {
           break;
         }
       }
-
-    })
+    });
 
     sub.on('eose', () => {
-      sub.unsub()
-    })
+      sub.unsub();
+    });
   }
 
   emit(type: ConnectMessageType, value?: any): void {
-    Object.values(this.listeners).forEach((listeners) => {
+    Object.values(this.listeners).forEach(listeners => {
       if (listeners[type]) {
         listeners[type].forEach(cb => cb(value));
       }
     });
   }
 
-
   async pair(remoteSignerPrivateKey: string): Promise<void> {
-    if (!remoteSignerPrivateKey) throw new Error('Signer private key is required');
+    if (!remoteSignerPrivateKey)
+      throw new Error('Signer private key is required');
     const remoteSignerPubKey = getPublicKey(remoteSignerPrivateKey);
     this.remote = remoteSignerPubKey;
 
@@ -169,12 +180,19 @@ export class Session {
       type: ConnectMessageType.PAIRED,
       value: { pubkey: this.remote },
     };
-    const randomID = Math.random().toString().slice(2);
-    const {event} = await prepareResponse(randomID, this.remote, this.target, message, remoteSignerPrivateKey);
+    const randomID = Math.random()
+      .toString()
+      .slice(2);
+    const { event } = await prepareResponse(
+      randomID,
+      this.remote,
+      this.target,
+      message,
+      remoteSignerPrivateKey
+    );
     const id = await this.sendEvent(event, remoteSignerPrivateKey);
     console.log('sent pairing response from mobile', id);
   }
-
 
   async sendEvent(event: Event, secretKey: string): Promise<string> {
     const id = getEventHash(event);
@@ -189,7 +207,9 @@ export class Session {
 
     const relay = relayInit(this.relay);
     await relay.connect();
-    relay.on('error', () => { throw new Error(`failed to connect to ${relay.url}`) });
+    relay.on('error', () => {
+      throw new Error(`failed to connect to ${relay.url}`);
+    });
 
     return new Promise((resolve, reject) => {
       const pub = relay.publish(signedEvent);
@@ -201,7 +221,7 @@ export class Session {
 
 function emptyListeners(): {} {
   let data: any = {};
-  Object.values(ConnectMessageType).forEach((type) => {
+  Object.values(ConnectMessageType).forEach(type => {
     data[type] = [];
   });
   return data;
