@@ -59,26 +59,27 @@ export class NostrRPC {
     // send request via relay
     await new Promise<void>((resolve, reject) => {
       const pub = this.relay.publish(event);
-      pub.on('failed', reject);
-      pub.on('seen', resolve);
+      pub.on('failed', (reason: any) => {
+        reject(reason);
+      });
+      pub.on('seen', () => {
+        resolve();
+      });
     });
 
-    console.log(`request: nostr id: ${event.id}`, { id, method, params });
-
+    // TODO: reject after a timeout
+    // waiting for response from remote
     return new Promise<void>((resolve, reject) => {
-      // waiting for response from remote
       const queries = [
         {
           kinds: [4],
           authors: [target],
           '#p': [this.self.pubkey],
+          since: event.created_at - 1,
         },
       ];
-      // TODO: reject after a timeout
+
       let sub = this.relay.sub(queries);
-
-      console.log('subscribing to', JSON.stringify(queries));
-
       sub.on('event', async (event: Event) => {
         let payload;
         try {
@@ -95,10 +96,12 @@ export class NostrRPC {
 
         // ignore all the events that are not NostrRPCResponse events
         if (!isValidResponse(payload)) return;
-        console.log(`response: nostr id: ${event.id}`, payload);
 
         // ignore all the events that are not for this request
         if (payload.id !== id) return;
+
+        // unsubscribe from the stream
+        sub.unsub();
 
         // if the response is an error, reject the promise
         if (payload.error) {
@@ -162,14 +165,9 @@ export class NostrRPC {
         body
       );
 
-      console.log('response to be sent', responseEvent);
       // send response via relay
-      const pub = this.relay.publish(responseEvent);
-      pub.on('failed', console.error);
-    });
-
-    sub.on('eose', () => {
-      sub.unsub();
+      this.relay.publish(responseEvent);
+      // TODO: handle errors when event is not seen
     });
 
     return sub;
