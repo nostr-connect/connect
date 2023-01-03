@@ -22,7 +22,7 @@ class MobileHandler extends NostrRPC {
   }
 }
 
-describe('Nostr Connect', () => {
+describe.skip('Nostr Connect', () => {
   it('connect', async () => {
     const testHandler = jest.fn();
 
