@@ -8,6 +8,7 @@ import {
   nip04,
   Event,
   Sub,
+  Filter,
 } from 'nostr-tools';
 
 export interface NostrRPCRequest {
@@ -84,7 +85,7 @@ export class NostrRPC {
           authors: [target],
           '#p': [this.self.pubkey],
           limit: 1,
-        },
+        } as Filter,
       ]);
 
       sub.on('event', async (event: Event) => {
@@ -137,7 +138,7 @@ export class NostrRPC {
         kinds: [4],
         '#p': [this.self.pubkey],
         since: now(),
-      },
+      } as Filter,
     ]);
 
     sub.on('event', async (event: Event) => {
