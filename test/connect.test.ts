@@ -22,7 +22,7 @@ class MobileHandler extends NostrRPC {
   }
 }
 
-describe.skip('Nostr Connect', () => {
+describe('Nostr Connect', () => {
   it('connect', async () => {
     const testHandler = jest.fn();
 
@@ -70,7 +70,7 @@ describe.skip('Nostr Connect', () => {
 
     // send the get_public_key message to the mobile app from the web
     const pubkey = await connect.getPublicKey();
-    expect(pubkey).toBe(webPK);
+    expect(pubkey).toBe(mobilePK);
   });
 });
 
