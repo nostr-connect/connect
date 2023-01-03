@@ -5,3 +5,4 @@ node_modules
 dist
 example/.cache/
 example/.parcel-cache/
+/relay-data/

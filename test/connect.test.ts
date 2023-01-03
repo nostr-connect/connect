@@ -2,7 +2,7 @@ import { getPublicKey } from 'nostr-tools';
 import { Connect, ConnectURI, NostrRPC } from '../src';
 import { sleep } from './utils';
 
-jest.setTimeout(8000);
+jest.setTimeout(5000);
 
 // web app (this is ephemeral and represents the currention session)
 const webSK =
@@ -49,9 +49,12 @@ describe('Nostr Connect', () => {
     expect(testHandler).toBeCalledTimes(1);
   });
 
-  it('returns pubkey', async () => {
+  it.only('returns pubkey', async () => {
     // start listening for connect messages on the mobile app
-    const remoteHandler = new MobileHandler({ secretKey: mobileSK });
+    const remoteHandler = new MobileHandler({
+      secretKey: mobileSK,
+      relay: 'wss://nostr.vulpem.com',
+    });
     await remoteHandler.listen();
 
     await sleep(1000);

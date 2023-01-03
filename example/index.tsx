@@ -25,7 +25,10 @@ const App = () => {
 
   useEffect(() => {
     (async () => {
-      await server.listen();
+      const sub = await server.listen();
+      sub.on('event', (evt) => {
+        console.log('server received message', evt);
+      });
     })();
   }, []);
 
