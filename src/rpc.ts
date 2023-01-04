@@ -37,17 +37,20 @@ export class NostrRPC {
     };
   }
 
-  async call({
-    target,
-    request: { id = randomID(), method, params = [] },
-  }: {
-    target: string;
-    request: {
-      id?: string;
-      method: string;
-      params?: any[];
-    };
-  }, opts?: { skipResponse?: boolean, timeout?: number }): Promise<any> {
+  async call(
+    {
+      target,
+      request: { id = randomID(), method, params = [] },
+    }: {
+      target: string;
+      request: {
+        id?: string;
+        method: string;
+        params?: any[];
+      };
+    },
+    opts?: { skipResponse?: boolean; timeout?: number }
+  ): Promise<any> {
     // connect to relay
     const relay = await connectToRelay(this.relay);
 
@@ -295,4 +298,3 @@ export async function broadcastToRelay(relay: Relay, event: Event) {
     });
   });
 }
-

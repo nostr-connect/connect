@@ -62,13 +62,16 @@ export class ConnectURI {
       relay: this.relayURL,
       secretKey,
     });
-    await rpc.call({
-      target: this.target,
-      request: {
-        method: 'connect',
-        params: [getPublicKey(secretKey)],
+    await rpc.call(
+      {
+        target: this.target,
+        request: {
+          method: 'connect',
+          params: [getPublicKey(secretKey)],
+        },
       },
-    }, { skipResponse: true });
+      { skipResponse: true }
+    );
 
     return;
   }
@@ -78,13 +81,16 @@ export class ConnectURI {
       relay: this.relayURL,
       secretKey,
     });
-    await rpc.call({
-      target: this.target,
-      request: {
-        method: 'disconnect',
-        params: [],
+    await rpc.call(
+      {
+        target: this.target,
+        request: {
+          method: 'disconnect',
+          params: [],
+        },
       },
-    }, { skipResponse: true });
+      { skipResponse: true }
+    );
 
     return;
   }
@@ -135,7 +141,7 @@ export class Connect {
           const [pubkey] = payload.params;
           this.target = pubkey;
           this.events.emit('connect', pubkey);
-          return
+          return;
         case 'disconnect':
           this.target = undefined;
           this.events.emit('disconnect');
