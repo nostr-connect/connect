@@ -9,13 +9,7 @@ export interface Metadata {
   icons?: string[];
 }
 
-export enum SessionStatus {
-  Paired = 'paired',
-  Unpaired = 'unpaired',
-}
-
 export class ConnectURI {
-  status: SessionStatus = SessionStatus.Unpaired;
   target: string;
   metadata: Metadata;
   relayURL: string;
@@ -68,14 +62,13 @@ export class ConnectURI {
       relay: this.relayURL,
       secretKey,
     });
-    const response = await rpc.call({
+    await rpc.call({
       target: this.target,
       request: {
         method: 'connect',
         params: [getPublicKey(secretKey)],
       },
-    });
-    if (!response) throw new Error('Invalid response from remote');
+    }, { skipResponse: true });
 
     return;
   }
@@ -85,29 +78,22 @@ export class ConnectURI {
       relay: this.relayURL,
       secretKey,
     });
-    const response = await rpc.call({
+    await rpc.call({
       target: this.target,
       request: {
         method: 'disconnect',
         params: [],
       },
-    });
-    if (!response) throw new Error('Invalid response from remote');
+    }, { skipResponse: true });
 
     return;
   }
-}
-
-export enum ConnectStatus {
-  Connected = 'connected',
-  Disconnected = 'disconnected',
 }
 
 export class Connect {
   rpc: NostrRPC;
   target?: string;
   events = new EventEmitter();
-  status = ConnectStatus.Disconnected;
 
   constructor({
     target,
@@ -121,7 +107,6 @@ export class Connect {
     this.rpc = new NostrRPC({ relay, secretKey });
     if (target) {
       this.target = target;
-      this.status = ConnectStatus.Connected;
     }
   }
 
@@ -140,19 +125,24 @@ export class Connect {
       } catch (ignore) {
         return;
       }
+
       // ignore all the events that are not NostrRPCRequest events
       if (!isValidRequest(payload)) return;
 
-      // ignore all the request that are not connect
-      if (payload.method !== 'connect') return;
-
-      // ignore all the request that are not for us
-      if (!payload.params || payload.params.length !== 1) return;
-      const [pubkey] = payload.params;
-
-      this.status = ConnectStatus.Connected;
-      this.target = pubkey;
-      this.events.emit('connect', pubkey);
+      switch (payload.method) {
+        case 'connect':
+          if (!payload.params || payload.params.length !== 1) return;
+          const [pubkey] = payload.params;
+          this.target = pubkey;
+          this.events.emit('connect', pubkey);
+          return
+        case 'disconnect':
+          this.target = undefined;
+          this.events.emit('disconnect');
+          return;
+        default:
+          return;
+      }
     });
   }
 
@@ -163,12 +153,8 @@ export class Connect {
     this.events.off(evt, cb);
   }
 
-  private isConnected() {
-    return this.status === ConnectStatus.Connected;
-  }
-
   async getPublicKey(): Promise<string> {
-    if (!this.target || !this.isConnected()) throw new Error('Not connected');
+    if (!this.target) throw new Error('Not connected');
 
     const response = await this.rpc.call({
       target: this.target,
@@ -180,8 +166,19 @@ export class Connect {
     return response as string;
   }
 
-  async signEvent(_event: Event): Promise<Event> {
-    throw new Error('Not implemented');
+  async signEvent(event: Event): Promise<string> {
+    if (!this.target) throw new Error('Not connected');
+
+    const signature = await this.rpc.call({
+      target: this.target,
+      request: {
+        method: 'sign_event',
+        params: [event],
+      },
+    });
+    console.log('signature', signature);
+
+    return signature as string;
   }
 
   async getRelays(): Promise<{

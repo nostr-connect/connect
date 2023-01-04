@@ -9,6 +9,7 @@ import {
   Event,
   Sub,
   Filter,
+  Relay,
 } from 'nostr-tools';
 
 export interface NostrRPCRequest {
@@ -46,38 +47,19 @@ export class NostrRPC {
       method: string;
       params?: any[];
     };
-  }): Promise<any> {
-    const relay = await relayInit(this.relay);
+  }, opts?: { skipResponse?: boolean, timeout?: number }): Promise<any> {
+    // connect to relay
+    const relay = await connectToRelay(this.relay);
+
     // prepare request to be sent
     const request = prepareRequest(id, method, params);
     const event = await prepareEvent(this.self.secret, target, request);
 
-    // connect to relay
-    await relay.connect();
-    await new Promise<void>((resolve, reject) => {
-      relay.on('connect', () => {
-        resolve();
-      });
-      relay.on('error', () => {
-        reject(`not possible to connect to ${relay.url}`);
-      });
-    });
-
-    // send request via relay
-    await new Promise<void>((resolve, reject) => {
-      relay.on('error', () => {
-        reject(`failed to connect to ${relay.url}`);
-      });
-      const pub = relay.publish(event);
-      pub.on('failed', (reason: any) => {
-        reject(reason);
-      });
-      pub.on('seen', () => {
-        resolve();
-      });
-    });
+    await broadcastToRelay(relay, event);
 
     // waiting for response from remote
+    if (opts && opts.skipResponse === true) return Promise.resolve();
+
     return new Promise<void>((resolve, reject) => {
       let sub = relay.sub([
         {
@@ -122,16 +104,7 @@ export class NostrRPC {
   }
 
   async listen(): Promise<Sub> {
-    const relay = relayInit(this.relay);
-    await relay.connect();
-    await new Promise<void>((resolve, reject) => {
-      relay.on('connect', () => {
-        resolve();
-      });
-      relay.on('error', () => {
-        reject(`not possible to connect to ${relay.url}`);
-      });
-    });
+    const relay = await connectToRelay(this.relay);
 
     let sub = relay.sub([
       {
@@ -159,6 +132,7 @@ export class NostrRPC {
       if (!isValidRequest(payload)) return;
 
       // handle request
+      if (typeof this[payload.method] !== 'function') Promise.resolve();
       const response = await this.handleRequest(payload);
 
       const body = prepareResponse(
@@ -292,3 +266,33 @@ export function isValidResponse(payload: any): boolean {
 
   return true;
 }
+
+export async function connectToRelay(realayURL: string) {
+  const relay = relayInit(realayURL);
+  await relay.connect();
+  await new Promise<void>((resolve, reject) => {
+    relay.on('connect', () => {
+      resolve();
+    });
+    relay.on('error', () => {
+      reject(`not possible to connect to ${relay.url}`);
+    });
+  });
+  return relay;
+}
+export async function broadcastToRelay(relay: Relay, event: Event) {
+  // send request via relay
+  return await new Promise<void>((resolve, reject) => {
+    relay.on('error', () => {
+      reject(`failed to connect to ${relay.url}`);
+    });
+    const pub = relay.publish(event);
+    pub.on('failed', (reason: any) => {
+      reject(reason);
+    });
+    pub.on('seen', () => {
+      resolve();
+    });
+  });
+}
+
