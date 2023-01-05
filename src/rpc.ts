@@ -26,6 +26,7 @@ export interface NostrRPCResponse {
 export class NostrRPC {
   relay: string;
   self: { pubkey: string; secret: string };
+  event: Event | undefined;
   // this is for implementing the response handlers for each method
   [key: string]: any;
 
@@ -118,7 +119,7 @@ export class NostrRPC {
     ]);
 
     sub.on('event', async (event: Event) => {
-      let payload;
+      let payload: NostrRPCRequest;
       try {
         const plaintext = await nip04.decrypt(
           this.self.secret,
@@ -136,7 +137,7 @@ export class NostrRPC {
 
       // handle request
       if (typeof this[payload.method] !== 'function') Promise.resolve();
-      const response = await this.handleRequest(payload);
+      const response = await this.handleRequest(payload, event);
 
       const body = prepareResponse(
         response.id,
@@ -166,13 +167,16 @@ export class NostrRPC {
   }
 
   private async handleRequest(
-    request: NostrRPCRequest
+    request: NostrRPCRequest,
+    event: Event
   ): Promise<NostrRPCResponse> {
     const { id, method, params } = request;
     let result = null;
     let error = null;
     try {
+      this.event = event;
       result = await this[method](...params);
+      this.event = undefined;
     } catch (e) {
       if (e instanceof Error) {
         error = e.message;
