@@ -5,9 +5,8 @@
   "scripts": {
     "start": "parcel --no-cache index.html",
     "watch": "parcel watch index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build --public-url /connect index.html"
   },
-  "publicUrl": "/connect",
   "dependencies": {
     "@nostr-connect/connect": "^0.1.0",
     "nostr-tools": "^1.1.1",
