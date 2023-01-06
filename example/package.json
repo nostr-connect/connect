@@ -7,6 +7,7 @@
     "watch": "parcel watch index.html",
     "build": "parcel build index.html"
   },
+  "publicUrl": "/connect",
   "dependencies": {
     "@nostr-connect/connect": "^0.1.0",
     "nostr-tools": "^1.1.1",
