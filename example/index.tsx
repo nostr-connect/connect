@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStatePersist } from 'use-state-persist';
 
 import * as ReactDOM from 'react-dom';
-import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '../src';
+import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '@nostr-connect/connect';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventHash, getPublicKey, Event } from 'nostr-tools';
@@ -84,6 +84,14 @@ const App = () => {
     return pubkey.length > 0;
   }
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(connectURI.toString()).then(function() {
+      alert('Copied!');
+    }, function(err) {
+      console.error('Async: Could not copy text: ', err);
+    });
+  }
+
   return (
     <>
       <section className="container">
@@ -99,6 +107,7 @@ const App = () => {
         {!isConnected() && <div className='content has-text-centered'>
           <div className='notification is-info'>
             <h2 className='title is-5'>Connect with Nostr</h2>
+            
             <QRCodeSVG value={connectURI.toString()} />
             <input
               className='input is-info'
@@ -106,6 +115,9 @@ const App = () => {
               value={connectURI.toString()}
               readOnly
             />
+            <button className='button is-info mt-3' onClick={copyToClipboard}>
+              Copy to clipboard
+            </button>
           </div>
         </div>}
       </section>

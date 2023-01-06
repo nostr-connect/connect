@@ -8,6 +8,8 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
+    "@nostr-connect/connect": "^0.1.0",
+    "nostr-tools": "^1.1.1",
     "qrcode.react": "^3.1.0",
     "react-app-polyfill": "^1.0.0",
     "use-state-persist": "^0.3.1"
