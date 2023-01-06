@@ -78,7 +78,11 @@ export class NostrRPC {
         let payload;
         /* eslint-disable @typescript-eslint/no-unused-vars */
         try {
-          const plaintext = await nip04.decrypt(this.self.secret, event.pubkey, event.content);
+          const plaintext = await nip04.decrypt(
+            this.self.secret,
+            event.pubkey,
+            event.content
+          );
           if (!plaintext) throw new Error('failed to decrypt event');
           payload = JSON.parse(plaintext);
         } catch (ignore) {
@@ -119,7 +123,11 @@ export class NostrRPC {
       let payload: NostrRPCRequest;
       /* eslint-disable @typescript-eslint/no-unused-vars */
       try {
-        const plaintext = await nip04.decrypt(this.self.secret, event.pubkey, event.content);
+        const plaintext = await nip04.decrypt(
+          this.self.secret,
+          event.pubkey,
+          event.content
+        );
         if (!plaintext) throw new Error('failed to decrypt event');
         payload = JSON.parse(plaintext);
       } catch (ignore) {
@@ -133,9 +141,17 @@ export class NostrRPC {
       if (typeof this[payload.method] !== 'function') Promise.resolve();
       const response = await this.handleRequest(payload, event);
 
-      const body = prepareResponse(response.id, response.result, response.error);
+      const body = prepareResponse(
+        response.id,
+        response.result,
+        response.error
+      );
 
-      const responseEvent = await prepareEvent(this.self.secret, event.pubkey, body);
+      const responseEvent = await prepareEvent(
+        this.self.secret,
+        event.pubkey,
+        body
+      );
 
       // send response via relay
       await new Promise<void>((resolve, reject) => {
@@ -152,7 +168,10 @@ export class NostrRPC {
     return sub;
   }
 
-  private async handleRequest(request: NostrRPCRequest, event: Event): Promise<NostrRPCResponse> {
+  private async handleRequest(
+    request: NostrRPCRequest,
+    event: Event
+  ): Promise<NostrRPCResponse> {
     const { id, method, params } = request;
     let result = null;
     let error = null;
@@ -179,9 +198,15 @@ export function now(): number {
   return Math.floor(Date.now() / 1000);
 }
 export function randomID(): string {
-  return Math.random().toString().slice(2);
+  return Math.random()
+    .toString()
+    .slice(2);
 }
-export function prepareRequest(id: string, method: string, params: any[]): string {
+export function prepareRequest(
+  id: string,
+  method: string,
+  params: any[]
+): string {
   return JSON.stringify({
     id,
     method,
@@ -227,7 +252,12 @@ export function isValidRequest(payload: any): boolean {
   if (!payload) return false;
 
   const keys = Object.keys(payload);
-  if (!keys.includes('id') || !keys.includes('method') || !keys.includes('params')) return false;
+  if (
+    !keys.includes('id') ||
+    !keys.includes('method') ||
+    !keys.includes('params')
+  )
+    return false;
 
   return true;
 }
@@ -236,7 +266,12 @@ export function isValidResponse(payload: any): boolean {
   if (!payload) return false;
 
   const keys = Object.keys(payload);
-  if (!keys.includes('id') || !keys.includes('result') || !keys.includes('error')) return false;
+  if (
+    !keys.includes('id') ||
+    !keys.includes('result') ||
+    !keys.includes('error')
+  )
+    return false;
 
   return true;
 }

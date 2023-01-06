@@ -54,9 +54,9 @@ export class ConnectURI {
   }
 
   toString() {
-    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(this.metadata)}&relay=${
-      this.relayURL
-    }`;
+    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(
+      this.metadata
+    )}&relay=${this.relayURL}`;
   }
 
   async approve(secretKey: string): Promise<void> {
@@ -120,7 +120,11 @@ export class Connect {
       let payload;
       /* eslint-disable @typescript-eslint/no-unused-vars */
       try {
-        const plaintext = await nip04.decrypt(this.rpc.self.secret, event.pubkey, event.content);
+        const plaintext = await nip04.decrypt(
+          this.rpc.self.secret,
+          event.pubkey,
+          event.content
+        );
         if (!plaintext) throw new Error('failed to decrypt event');
         payload = JSON.parse(plaintext);
       } catch (ignore) {
