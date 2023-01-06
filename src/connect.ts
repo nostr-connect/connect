@@ -1,6 +1,7 @@
-import { getPublicKey, Event, nip04 } from 'nostr-tools';
-import { isValidRequest, NostrRPC } from './rpc';
 import EventEmitter from 'events';
+import { Event, getPublicKey, nip04 } from 'nostr-tools';
+
+import { isValidRequest, NostrRPC } from './rpc';
 
 export interface Metadata {
   name: string;
@@ -29,9 +30,10 @@ export class ConnectURI {
       throw new Error('Invalid connect URI: missing metadata');
     }
 
+    /* eslint-disable @typescript-eslint/no-unused-vars */
     try {
       const md = JSON.parse(metadata);
-      return new ConnectURI({ target: target, metadata: md, relayURL: relay });
+      return new ConnectURI({ target, metadata: md, relayURL: relay });
     } catch (ignore) {
       throw new Error('Invalid connect URI: metadata is not valid JSON');
     }
@@ -52,9 +54,9 @@ export class ConnectURI {
   }
 
   toString() {
-    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(
-      this.metadata
-    )}&relay=${this.relayURL}`;
+    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(this.metadata)}&relay=${
+      this.relayURL
+    }`;
   }
 
   async approve(secretKey: string): Promise<void> {
@@ -72,8 +74,6 @@ export class ConnectURI {
       },
       { skipResponse: true }
     );
-
-    return;
   }
 
   async reject(secretKey: string): Promise<void> {
@@ -91,8 +91,6 @@ export class ConnectURI {
       },
       { skipResponse: true }
     );
-
-    return;
   }
 }
 
@@ -120,12 +118,9 @@ export class Connect {
     const sub = await this.rpc.listen();
     sub.on('event', async (event: Event) => {
       let payload;
+      /* eslint-disable @typescript-eslint/no-unused-vars */
       try {
-        const plaintext = await nip04.decrypt(
-          this.rpc.self.secret,
-          event.pubkey,
-          event.content
-        );
+        const plaintext = await nip04.decrypt(this.rpc.self.secret, event.pubkey, event.content);
         if (!plaintext) throw new Error('failed to decrypt event');
         payload = JSON.parse(plaintext);
       } catch (ignore) {
@@ -136,18 +131,19 @@ export class Connect {
       if (!isValidRequest(payload)) return;
 
       switch (payload.method) {
-        case 'connect':
+        case 'connect': {
           if (!payload.params || payload.params.length !== 1) return;
           const [pubkey] = payload.params;
           this.target = pubkey;
           this.events.emit('connect', pubkey);
-          return;
-        case 'disconnect':
+          break;
+        }
+        case 'disconnect': {
           this.target = undefined;
           this.events.emit('disconnect');
-          return;
+          break;
+        }
         default:
-          return;
       }
     });
   }
