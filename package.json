@@ -33,16 +33,16 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "nostr-connect-ts",
+  "name": "@nostr-connect/connect",
   "author": "tiero",
-  "module": "dist/nostr-connect-ts.esm.js",
+  "module": "dist/connect.esm.js",
   "size-limit": [
     {
-      "path": "dist/nostr-connect-ts.cjs.production.min.js",
+      "path": "dist/connect.cjs.production.min.js",
       "limit": "10 KB"
     },
     {
-      "path": "dist/nostr-connect-ts.esm.js",
+      "path": "dist/connect.esm.js",
       "limit": "10 KB"
     }
   ],
