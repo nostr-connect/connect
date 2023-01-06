@@ -11,13 +11,10 @@
     "@nostr-connect/connect": "^0.1.0",
     "nostr-tools": "^1.1.1",
     "qrcode.react": "^3.1.0",
+    "react": "^18.2.0",
     "react-app-polyfill": "^1.0.0",
+    "react-dom": "^18.2.0",
     "use-state-persist": "^0.3.1"
-  },
-  "alias": {
-    "react": "../node_modules/react",
-    "react-dom": "../node_modules/react-dom/profiling",
-    "scheduler/tracing": "../node_modules/scheduler/tracing-profiling"
   },
   "devDependencies": {
     "@types/react": "^16.9.11",
