@@ -8,13 +8,13 @@ jest.setTimeout(5000);
 const webSK =
   '5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3';
 const webPK = getPublicKey(webSK);
-console.log('webPk', webPK);
+//console.debug('webPk', webPK);
 
 // mobile app with keys with the nostr identity
 const mobileSK =
   'ed779ff047f99c95f732b22c9f8f842afb870c740aab591776ebc7b64e83cf6c';
 const mobilePK = getPublicKey(mobileSK);
-console.log('mobilePK', mobilePK);
+//console.debug('mobilePK', mobilePK);
 
 class MobileHandler extends NostrSigner {
   async get_public_key(): Promise<string> {
@@ -42,13 +42,28 @@ class MobileHandler extends NostrSigner {
 }
 
 describe('Nostr Connect', () => {
-  it.only('generates a connectURI', async () => {
-    const url = ConnectURI.fromURI(
-      `nostrconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?metadata={"name":"Example","description":"🔉🔉🔉","url":"https://example.com","icons":["https://example.com/icon.png"]}&relay=wss://nostr.vulpem.com`
-    );
-    console.log(url.target);
+  it('roundtrip connectURI', async () => {
+    const connectURI = new ConnectURI({
+      target: `b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4`,
+      relay: 'wss://nostr.vulpem.com',
+      metadata: {
+        name: 'Vulpem',
+        description: 'Enabling the next generation of bitcoin-native financial services',
+        url: 'https://vulpem.com',
+        icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png'],
+      },
+    });
+    const url = ConnectURI.fromURI(connectURI.toString());
+    expect(url.target).toBe('b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4');
+    expect(url.relay).toBe('wss://nostr.vulpem.com');
+    expect(url.metadata.name).toBe('Vulpem');
+    expect(url.metadata.description).toBe('Enabling the next generation of bitcoin-native financial services');
+    expect(url.metadata.url).toBe('https://vulpem.com');
+    expect(url.metadata.icons).toBeDefined();
+    expect(url.metadata.icons!.length).toBe(1);  
+    expect(url.metadata.icons![0]).toBe('https://vulpem.com/1000x860-p-500.422be1bc.png');
   });
-  it('connect', async () => {
+  it.skip('connect', async () => {
     const testHandler = jest.fn();
 
     // start listening for connect messages on the web app
@@ -98,7 +113,7 @@ describe('Nostr Connect', () => {
     expect(pubkey).toBe(mobilePK);
   });
 
-  it('returns a signed event', async () => {
+  it.skip('returns a signed event', async () => {
     // start listening for connect messages on the mobile app
     const remoteHandler = new MobileHandler({
       secretKey: mobileSK,
@@ -109,7 +124,6 @@ describe('Nostr Connect', () => {
 
     remoteHandler.events.on('sign_event_request', (event: Event) => {
       // ⚠️⚠️⚠️ IMPORTANT: always check if the app is connected
-      console.log(remoteHandler.connectedAppIDs);
       if (!remoteHandler.isConnected(event.pubkey)) return;
       // assume  user clicks on approve button on the UI
       remoteHandler.events.emit('sign_event_approve');

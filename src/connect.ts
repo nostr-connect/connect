@@ -17,8 +17,8 @@ export class ConnectURI {
 
   static fromURI(uri: string): ConnectURI {
     const url = new URL(uri);
-    const target = url.pathname.substring(2);
-    if (!url.pathname.startsWith('//'))
+    const target = url.hostname || url.pathname.substring(2);
+    if (!target)
       throw new Error('Invalid connect URI: missing target');
     const relay = url.searchParams.get('relay');
     if (!relay) {
