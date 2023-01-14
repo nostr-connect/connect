@@ -42,6 +42,10 @@ class MobileHandler extends NostrSigner {
 }
 
 describe('Nostr Connect', () => {
+  it.only('generates a connectURI', async () => {
+    const url = ConnectURI.fromURI(`nostrconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?metadata={"name":"Example","description":"🔉🔉🔉","url":"https://example.com","icons":["https://example.com/icon.png"]}&relay=wss://nostr.vulpem.com`);
+    console.log(url.target);
+  });
   it('connect', async () => {
     const testHandler = jest.fn();
 
@@ -68,7 +72,7 @@ describe('Nostr Connect', () => {
     expect(testHandler).toBeCalledTimes(1);
   });
 
-  it.only('returns pubkey', async () => {
+  it('returns pubkey', async () => {
     // start listening for connect messages on the mobile app
     const remoteHandler = new MobileHandler({
       secretKey: mobileSK,
