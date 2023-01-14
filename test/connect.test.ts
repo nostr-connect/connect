@@ -43,7 +43,9 @@ class MobileHandler extends NostrSigner {
 
 describe('Nostr Connect', () => {
   it.only('generates a connectURI', async () => {
-    const url = ConnectURI.fromURI(`nostrconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?metadata={"name":"Example","description":"🔉🔉🔉","url":"https://example.com","icons":["https://example.com/icon.png"]}&relay=wss://nostr.vulpem.com`);
+    const url = ConnectURI.fromURI(
+      `nostrconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4?metadata={"name":"Example","description":"🔉🔉🔉","url":"https://example.com","icons":["https://example.com/icon.png"]}&relay=wss://nostr.vulpem.com`
+    );
     console.log(url.target);
   });
   it('connect', async () => {
