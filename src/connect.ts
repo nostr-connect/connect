@@ -72,7 +72,7 @@ export class ConnectURI {
           params: [getPublicKey(secretKey)],
         },
       },
-      { skipResponse: true }
+      { skipResponse: false }
     );
   }
 

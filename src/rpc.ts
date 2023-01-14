@@ -1,3 +1,4 @@
+import EventEmitter from 'events';
 import {
   Event,
   Filter,
@@ -29,6 +30,8 @@ export class NostrRPC {
   event: Event | undefined;
   // this is for implementing the response handlers for each method
   [key: string]: any;
+  // events
+  events = new EventEmitter();
 
   constructor(opts: { relay?: string; secretKey: string }) {
     this.relay = opts.relay || 'wss://nostr.vulpem.com';

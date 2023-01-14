@@ -1,5 +1,5 @@
-import { getPublicKey } from 'nostr-tools';
-import { Connect, ConnectURI, NostrRPC } from '../src';
+import { getPublicKey, signEvent, Event } from 'nostr-tools';
+import { Connect, ConnectURI, NostrSigner } from '../src';
 import { sleep } from './utils';
 
 jest.setTimeout(5000);
@@ -16,9 +16,28 @@ const mobileSK =
 const mobilePK = getPublicKey(mobileSK);
 console.log('mobilePK', mobilePK);
 
-class MobileHandler extends NostrRPC {
+class MobileHandler extends NostrSigner {
   async get_public_key(): Promise<string> {
     return getPublicKey(this.self.secret);
+  }
+  async sign_event(event: any): Promise<string> {
+    if (!this.event) throw new Error('No origin event');
+
+    // emit event to the UI to show a modal
+    this.events.emit('sign_event_request', event);
+
+    // wait for the user to approve or reject the request
+    return new Promise((resolve, reject) => {
+      // listen for user acceptance
+      this.events.on('sign_event_approve', () => {
+        resolve(signEvent(event, this.self.secret));
+      });
+
+      // or rejection
+      this.events.on('sign_event_reject', () => {
+        reject(new Error('User rejected request'));
+      });
+    });
   }
 }
 
@@ -71,6 +90,50 @@ describe('Nostr Connect', () => {
     // send the get_public_key message to the mobile app from the web
     const pubkey = await connect.getPublicKey();
     expect(pubkey).toBe(mobilePK);
+  });
+
+  it('returns a signed event', async () => {
+    // start listening for connect messages on the mobile app
+    const remoteHandler = new MobileHandler({
+      secretKey: mobileSK,
+      relay: 'wss://nostr.vulpem.com',
+    });
+
+    // define how to comnsume the event
+
+    remoteHandler.events.on('sign_event_request', (event: Event) => {
+      // ⚠️⚠️⚠️ IMPORTANT: always check if the app is connected
+      console.log(remoteHandler.connectedAppIDs);
+      if (!remoteHandler.isConnected(event.pubkey)) return;
+      // assume  user clicks on approve button on the UI
+      remoteHandler.events.emit('sign_event_approve');
+    });
+
+    // add app as connected app
+    remoteHandler.addConnectedApp(webPK);
+
+    // start listening for request messages on the mobile app
+    await remoteHandler.listen();
+
+    await sleep(1000);
+
+    // start listening for connect messages on the web app
+    const connect = new Connect({
+      secretKey: webSK,
+      target: mobilePK,
+    });
+    await connect.init();
+
+    await sleep(1000);
+
+    const event = await connect.signEvent({
+      kind: 1,
+      pubkey: mobilePK,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content: '🏃‍♀️ Testing Nostr Connect',
+    });
+    expect(event).toBeDefined();
   });
 });
 
