@@ -91,12 +91,12 @@ The NostrRPC class provides access to the Nostr public key via `this.self.pubkey
 It's best to ask approval from the user before signing an event. To do so, you can emit an event to the UI and wait for the user to approve or reject the request.
 
 ```typescript
-import { NostrRPC } from '@nostr-connect/connect';
+import { NostrSigner } from '@nostr-connect/connect';
 import { getPublicKey, signEvent, nip06 } from 'nostr-tools';
 
 const sk = nip06.privateKeyFromSeedWords(myWords);
 
-class MobileHandler extends NostrRPC {
+class MobileHandler extends NostrSigner {
 
   async get_public_key(): Promise<string> {
     return getPublicKey(sk);
