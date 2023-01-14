@@ -106,10 +106,7 @@ class MobileHandler extends NostrSigner {
     if (!this.event) throw new Error('No origin event');
 
     // emit event to the UI to show a modal
-    this.events.emit('sign_event_request', {
-      sender: this.event.pubkey,
-      event,
-    });
+    this.events.emit('sign_event_request', event);
 
     // wait for the user to approve or reject the request
     return new Promise((resolve, reject) => {
@@ -131,6 +128,8 @@ class MobileHandler extends NostrSigner {
 2. 🎒 Create a MobileHandler instance
 
 Generate a key to identify the remote signer, it is used to be reached by the apps.
+
+An instance that extends `NostrSigner` has access to `isConnected(pubkey:string): boolean` method that tells you if the current request is from an app that has been granted the connection by the current signer app.
 
 ```typescript
 // random key
