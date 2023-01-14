@@ -18,8 +18,7 @@ export class ConnectURI {
   static fromURI(uri: string): ConnectURI {
     const url = new URL(uri);
     const target = url.hostname || url.pathname.substring(2);
-    if (!target)
-      throw new Error('Invalid connect URI: missing target');
+    if (!target) throw new Error('Invalid connect URI: missing target');
     const relay = url.searchParams.get('relay');
     if (!relay) {
       throw new Error('Invalid connect URI: missing relay');
@@ -53,9 +52,9 @@ export class ConnectURI {
   }
 
   toString() {
-    return `nostrconnect://${this.target}?metadata=${JSON.stringify(
-      this.metadata
-    )}&relay=${this.relay}`;
+    return `nostrconnect://${this.target}?metadata=${encodeURIComponent(
+      JSON.stringify(this.metadata)
+    )}&relay=${encodeURIComponent(this.relay)}`;
   }
 
   async approve(secretKey: string): Promise<void> {
@@ -71,7 +70,7 @@ export class ConnectURI {
           params: [getPublicKey(secretKey)],
         },
       },
-      { skipResponse: false }
+      { skipResponse: true }
     );
   }
 
@@ -135,7 +134,8 @@ export class Connect {
 
       switch (payload.method) {
         case 'connect': {
-          if (!payload.params || payload.params.length !== 1) return;
+          if (!payload.params || payload.params.length !== 1)
+            throw new Error('connect: missing pubkey');
           const [pubkey] = payload.params;
           this.target = pubkey;
           this.events.emit('connect', pubkey);
@@ -156,6 +156,30 @@ export class Connect {
   }
   off(evt: 'connect' | 'disconnect', cb: (...args: any[]) => void) {
     this.events.off(evt, cb);
+  }
+
+  async disconnect(): Promise<void> {
+    if (!this.target) throw new Error('Not connected');
+
+    // notify the UI that we are disconnecting
+    this.events.emit('disconnect');
+
+    try {
+      await this.rpc.call(
+        {
+          target: this.target,
+          request: {
+            method: 'disconnect',
+            params: [],
+          },
+        },
+        { skipResponse: true }
+      );
+    } catch (error) {
+      throw new Error('Failed to disconnect');
+    }
+
+    this.target = undefined;
   }
 
   async getPublicKey(): Promise<string> {
@@ -181,7 +205,6 @@ export class Connect {
         params: [event],
       },
     });
-    console.log('signature', signature);
 
     return signature as string;
   }

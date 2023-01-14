@@ -127,9 +127,7 @@ class MobileHandler extends NostrSigner {
 
 ### 📱 Create a MobileHandler instance
 
-Generate a key to identify the remote signer, it is used to be reached by the apps.
-
-An instance that extends `NostrSigner` has access to `isConnected(pubkey:string): boolean` method that tells you if the current request is from an app that has been granted the connection by the current signer app.
+Generate a key to identify the remote signer, it is used to be reached by the apps. At the moment it's your duty to persist locally a list of the apps that are allowed to connect to your remote signer.
 
 ```typescript
 // random key
@@ -141,9 +139,9 @@ const handler = new MobileHandler({ secretKey });
 remoteHandler.events.on('sign_event_request',
   (event: Event) => {
     // ⚠️⚠️⚠️ IMPORTANT: always check if the app is connected 
-    if (!remoteHandler.isConnected(event.pubkey)) return;
+
     // do your UI stuff here to ask the user to approve or reject the request    
-    
+
     // UI components can accept the sign
     //this.events.emit('sign_event_approve');
     

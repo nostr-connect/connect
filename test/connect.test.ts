@@ -48,20 +48,27 @@ describe('Nostr Connect', () => {
       relay: 'wss://nostr.vulpem.com',
       metadata: {
         name: 'Vulpem',
-        description: 'Enabling the next generation of bitcoin-native financial services',
+        description:
+          'Enabling the next generation of bitcoin-native financial services',
         url: 'https://vulpem.com',
         icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png'],
       },
     });
     const url = ConnectURI.fromURI(connectURI.toString());
-    expect(url.target).toBe('b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4');
+    expect(url.target).toBe(
+      'b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4'
+    );
     expect(url.relay).toBe('wss://nostr.vulpem.com');
     expect(url.metadata.name).toBe('Vulpem');
-    expect(url.metadata.description).toBe('Enabling the next generation of bitcoin-native financial services');
+    expect(url.metadata.description).toBe(
+      'Enabling the next generation of bitcoin-native financial services'
+    );
     expect(url.metadata.url).toBe('https://vulpem.com');
     expect(url.metadata.icons).toBeDefined();
-    expect(url.metadata.icons!.length).toBe(1);  
-    expect(url.metadata.icons![0]).toBe('https://vulpem.com/1000x860-p-500.422be1bc.png');
+    expect(url.metadata.icons!.length).toBe(1);
+    expect(url.metadata.icons![0]).toBe(
+      'https://vulpem.com/1000x860-p-500.422be1bc.png'
+    );
   });
   it.skip('connect', async () => {
     const testHandler = jest.fn();
@@ -124,7 +131,7 @@ describe('Nostr Connect', () => {
 
     remoteHandler.events.on('sign_event_request', (event: Event) => {
       // ⚠️⚠️⚠️ IMPORTANT: always check if the app is connected
-      if (!remoteHandler.isConnected(event.pubkey)) return;
+      //if (!remoteHandler.isConnected(event.pubkey)) return;
       // assume  user clicks on approve button on the UI
       remoteHandler.events.emit('sign_event_approve');
     });
@@ -186,7 +193,6 @@ describe('Nostr Connect', () => {
        
 
         sessionWeb.on(ConnectMessageType.UNPAIRED, () => {
-          console.log('unpaired');
         });
 
        */
