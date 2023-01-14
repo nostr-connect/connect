@@ -11,7 +11,7 @@ import { getEventHash, getPublicKey, Event } from 'nostr-tools';
 const secretKey = "5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3";
 const connectURI = new ConnectURI({
   target: getPublicKey(secretKey),
-  relayURL: 'wss://nostr.vulpem.com',
+  relay: 'wss://nostr.vulpem.com',
   metadata: {
     name: 'Example',
     description: '🔉🔉🔉',

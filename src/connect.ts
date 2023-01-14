@@ -13,7 +13,7 @@ export interface Metadata {
 export class ConnectURI {
   target: string;
   metadata: Metadata;
-  relayURL: string;
+  relay: string;
 
   static fromURI(uri: string): ConnectURI {
     const url = new URL(uri);
@@ -33,7 +33,7 @@ export class ConnectURI {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     try {
       const md = JSON.parse(metadata);
-      return new ConnectURI({ target, metadata: md, relayURL: relay });
+      return new ConnectURI({ target, metadata: md, relay: relay });
     } catch (ignore) {
       throw new Error('Invalid connect URI: metadata is not valid JSON');
     }
@@ -42,26 +42,26 @@ export class ConnectURI {
   constructor({
     target,
     metadata,
-    relayURL,
+    relay,
   }: {
     target: string;
     metadata: Metadata;
-    relayURL: string;
+    relay: string;
   }) {
     this.target = target;
     this.metadata = metadata;
-    this.relayURL = relayURL;
+    this.relay = relay;
   }
 
   toString() {
-    return `nostr://connect?target=${this.target}&metadata=${JSON.stringify(
+    return `nostr://connect?${this.target}?metadata=${JSON.stringify(
       this.metadata
-    )}&relay=${this.relayURL}`;
+    )}&relay=${this.relay}`;
   }
 
   async approve(secretKey: string): Promise<void> {
     const rpc = new NostrRPC({
-      relay: this.relayURL,
+      relay: this.relay,
       secretKey,
     });
     await rpc.call(
@@ -78,7 +78,7 @@ export class ConnectURI {
 
   async reject(secretKey: string): Promise<void> {
     const rpc = new NostrRPC({
-      relay: this.relayURL,
+      relay: this.relay,
       secretKey,
     });
     await rpc.call(

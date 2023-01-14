@@ -12,8 +12,10 @@ yarn add @nostr-connect/connect
 ```
 
 
-## 🚀 Getting started
+## 📖 Usage 
 
+1. [👩‍💻 For Apps developers](#-for-apps-developers)
+2. [🔐 For Remote Signer developers](#-for-wallet-developers)
 ### Create an ephemeral key
 
 To use the SDK, you need to create an ephemeral key. This key is used to authenticate your user and to create a session.

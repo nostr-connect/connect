@@ -36,7 +36,7 @@ describe('Nostr Connect', () => {
     // send the connect message to the web app from the mobile
     const connectURI = new ConnectURI({
       target: webPK,
-      relayURL: 'wss://nostr.vulpem.com',
+      relay: 'wss://nostr.vulpem.com',
       metadata: {
         name: 'My Website',
         description: 'lorem ipsum dolor sit amet',
