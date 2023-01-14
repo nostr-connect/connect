@@ -77,7 +77,7 @@ const sig = await connect.signEvent(event);
 
 ## 🔐 For Wallet developers
 
-### 🤓 1. Define your methods
+### 🤓 Define your methods
 
 As per [NIP-46](https://github.com/nostr-connect/nips/blob/nostr-connect/46.md), the Signer app **MUST** implement the following RPC methods:
 
@@ -125,7 +125,7 @@ class MobileHandler extends NostrSigner {
 }
 ```
 
-2. 🎒 Create a MobileHandler instance
+### 📱 Create a MobileHandler instance
 
 Generate a key to identify the remote signer, it is used to be reached by the apps.
 
@@ -156,7 +156,7 @@ remoteHandler.events.on('sign_event_request',
 await remoteHandler.listen();
 ``` 
 
-4. 🚏 Intercept ConnectURI
+### 🔌 Intercept ConnectURI
 
 Allow user to scan the QR code and extract the ConnectURI, intercept it via deep linking or let use manually copy-paste the URI.
 
