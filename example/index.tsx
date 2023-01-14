@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStatePersist } from 'use-state-persist';
 
 import * as ReactDOM from 'react-dom';
-import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '../src';
+import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '@nostr-connect/connect';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventHash, getPublicKey, Event } from 'nostr-tools';
