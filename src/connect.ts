@@ -17,10 +17,9 @@ export class ConnectURI {
 
   static fromURI(uri: string): ConnectURI {
     const url = new URL(uri);
-    const target = url.searchParams.get('target');
-    if (!target) {
+    const target = url.pathname.substring(2);
+    if (!url.pathname.startsWith('//'))
       throw new Error('Invalid connect URI: missing target');
-    }
     const relay = url.searchParams.get('relay');
     if (!relay) {
       throw new Error('Invalid connect URI: missing relay');
@@ -33,7 +32,7 @@ export class ConnectURI {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     try {
       const md = JSON.parse(metadata);
-      return new ConnectURI({ target, metadata: md, relay: relay });
+      return new ConnectURI({ target, metadata: md, relay });
     } catch (ignore) {
       throw new Error('Invalid connect URI: metadata is not valid JSON');
     }
@@ -54,7 +53,7 @@ export class ConnectURI {
   }
 
   toString() {
-    return `nostr://connect?${this.target}?metadata=${JSON.stringify(
+    return `nostrconnect://${this.target}?metadata=${JSON.stringify(
       this.metadata
     )}&relay=${this.relay}`;
   }
