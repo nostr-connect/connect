@@ -159,8 +159,13 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.0.tgz#d15357f7c227e751d90aa06b05a0e5cf993ba8c1"
   integrity sha512-kbacwGSsH/CTout0ZnZWxnW1B+jH/7r/WAAKLBtrRJ/+CUH7lgmQzl3GTrQua3SGKWNSDsS6lmjnDpIJ5Dxyaw==
 
-"@nostr-connect/connect@file:../src":
-  version "0.0.0"
+"@nostr-connect/connect@^0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@nostr-connect/connect/-/connect-0.1.4.tgz#b89d2ad2a192221302052b2bcddb2ef2134b398c"
+  integrity sha512-pJdULgUFWzhisGztYCLQTcLXMesOmR39PkjH9C2IozFpWC/MqMHs3/jArJr0EAx/YgkCjdv6IUajjGC1gMefoA==
+  dependencies:
+    events "^3.3.0"
+    nostr-tools "^1.0.1"
 
 "@parcel/bundler-default@2.8.2":
   version "2.8.2"
@@ -1042,7 +1047,7 @@ escape-string-regexp@^1.0.5:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
   integrity sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==
 
-events@^3.1.0:
+events@^3.1.0, events@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
   integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
@@ -1263,7 +1268,7 @@ node-releases@^2.0.6:
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.8.tgz#0f349cdc8fcfa39a92ac0be9bc48b7706292b9ae"
   integrity sha512-dFSmB8fFHEH/s81Xi+Y/15DQY6VHW81nXRj86EMSL3lmuTmK1e+aT4wrFCkTbm+gSwkw4KpX+rT/pMM2c1mF+A==
 
-nostr-tools@^1.1.1:
+nostr-tools@^1.0.1, nostr-tools@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/nostr-tools/-/nostr-tools-1.1.1.tgz#2be4cd650bc0a4d20650b6cf46fee451c9f565b8"
   integrity sha512-mxgjbHR6nx2ACBNa2tBpeM/glsPWqxHPT1Kszx/XfzL+kUdi1Gm3Xz1UcaODQ2F84IFtCKNLO+aF31ZfTAhSYQ==

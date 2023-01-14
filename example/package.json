@@ -8,7 +8,7 @@
     "build": "parcel build --public-url /connect index.html"
   },
   "dependencies": {
-    "@nostr-connect/connect": "@nostr-connect/connect",
+    "@nostr-connect/connect": "^0.1.4",
     "nostr-tools": "^1.1.1",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
