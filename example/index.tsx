@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStatePersist } from 'use-state-persist';
 
 import * as ReactDOM from 'react-dom';
-import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '@nostr-connect/connect';
+import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '../src';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventHash, getPublicKey, Event } from 'nostr-tools';
@@ -33,11 +33,9 @@ const App = () => {
         target,
       });
       connect.events.on('connect', (pubkey: string) => {
-        console.log('We are connected to ' + pubkey)
         setPubkey(pubkey);
       });
       connect.events.on('disconnect', () => {
-        console.log('We got disconnected')
         setEvent({});
         setPubkey('');
         setGetPublicKeyReply('');
@@ -58,56 +56,79 @@ const App = () => {
   }
 
   const sendMessage = async () => {
-    if (pubkey.length === 0) return;
+    try {
+      if (pubkey.length === 0) return;
 
-    const connect = new Connect({
-      secretKey,
-      target: pubkey,
-    });
+      const connect = new Connect({
+        secretKey,
+        target: pubkey,
+      });
 
-    let event: Event = {
-      kind: 1,
-      pubkey: pubkey,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [],
-      content: "Running Nostr Connect 🔌"
-    };
-    event.id = getEventHash(event)
-    event.sig = await connect.signEvent(event);
-    const relay = await connectToRelay('wss://relay.damus.io');
-    await broadcastToRelay(relay, event);
+      let event: Event = {
+        kind: 1,
+        pubkey: pubkey,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: "Running Nostr Connect 🔌"
+      };
+      event.id = getEventHash(event)
+      event.sig = await connect.signEvent(event);
+      const relay = await connectToRelay('wss://relay.damus.io');
+      await broadcastToRelay(relay, event);
 
-    setEvent(event);
+      setEvent(event);
+    } catch (error) {
+      console.error(error);
+    }
+
   }
 
   const isConnected = () => {
     return pubkey.length > 0;
   }
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(connectURI.toString()).then(function() {
-      alert('Copied!');
-    }, function(err) {
-      console.error('Async: Could not copy text: ', err);
+  const disconnect = async () => {
+    const connect = new Connect({
+      secretKey,
+      target: pubkey,
     });
+    await connect.disconnect();
+    //cleanup
+    setEvent({});
+    setPubkey('');
+    setGetPublicKeyReply('');
+  }
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(connectURI.toString()).then(undefined,
+      function (err) {
+        console.error('Async: Could not copy text: ', err);
+      });
   }
 
   return (
-    <>
+    <div className='hero is-fullheight has-background-black has-text-white'>
       <section className="container">
         <div className='content'>
-          <h1 className='title'>Nostr Connect Playground</h1>
+          <h1 className='title has-text-white'>Nostr Connect Playground</h1>
         </div>
         <div className='content'>
-          <p className='subtitle is-6'><strong>Nostr ID</strong> {getPublicKey(secretKey)}</p>
+          <p className='subtitle is-6 has-text-white'><b>Nostr ID</b> {getPublicKey(secretKey)}</p>
         </div>
         <div className='content'>
-          <p className='subtitle is-6'><strong>Status</strong> {isConnected() ? '🟢 Connected' : '🔴 Disconnected'}</p>
+          <p className='subtitle is-6 has-text-white'><b>Status</b> {isConnected() ? '🟢 Connected' : '🔴 Disconnected'}</p>
         </div>
+       {
+       isConnected() && <div className='content'>
+          <button className='button is-danger' onClick={disconnect}>
+            <p className='subtitle is-6 has-text-white'>💤 <i>Disconnect</i></p>
+          </button>
+        </div>
+        }
         {!isConnected() && <div className='content has-text-centered'>
-          <div className='notification is-info'>
+          <div className='notification is-dark'>
             <h2 className='title is-5'>Connect with Nostr</h2>
-            
+
             <QRCodeSVG value={connectURI.toString()} />
             <input
               className='input is-info'
@@ -119,15 +140,14 @@ const App = () => {
               Copy to clipboard
             </button>
           </div>
-        </div>}
-      </section>
-      <section className="container mt-6">
+        </div>
+        }
         {
           isConnected() &&
-          <>
+          <div className='notification is-dark'>
             <div className='content'>
-              <h2 className='title is-5'>Get Public Key</h2>
-              <button className='button is-info' onClick={getPub}>
+              <h2 className='title is-5 has-text-white'>Get Public Key</h2>
+              <button className='button is-info has-text-white' onClick={getPub}>
                 Get public key
               </button>
               {getPublicKeyReply.length > 0 && <input
@@ -138,9 +158,9 @@ const App = () => {
               />}
             </div>
             <div className='content'>
-              <h2 className='title is-5'>Send a message with text <b>Running Nostr Connect 🔌</b></h2>
+              <h2 className='title is-5 has-text-white'>Post a message on Damus relay with text <b>Running Nostr Connect 🔌</b></h2>
               <button className='button is-info' onClick={sendMessage}>
-                Send message to Nostr
+                Sign Event
               </button>
               {
                 Object.keys(eventWithSig).length > 0 &&
@@ -152,10 +172,10 @@ const App = () => {
                 />
               }
             </div>
-          </>
+          </div>
         }
       </section>
-    </>
+    </div>
 
 
   )
