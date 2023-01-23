@@ -130,6 +130,7 @@ describe('Nostr Connect', () => {
     // define how to comnsume the event
 
     remoteHandler.events.on('sign_event_request', (event: Event) => {
+      console.log(event.pubkey);
       // ⚠️⚠️⚠️ IMPORTANT: always check if the app is connected
       //if (!remoteHandler.isConnected(event.pubkey)) return;
       // assume  user clicks on approve button on the UI

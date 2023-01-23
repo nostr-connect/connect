@@ -70,7 +70,7 @@ export class NostrRPC {
     return new Promise<void>((resolve, reject) => {
       const sub = relay.sub([
         {
-          kinds: [4],
+          kinds: [24133],
           authors: [target],
           '#p': [this.self.pubkey],
           limit: 1,
@@ -116,7 +116,7 @@ export class NostrRPC {
 
     const sub = relay.sub([
       {
-        kinds: [4],
+        kinds: [24133],
         '#p': [this.self.pubkey],
         since: now(),
       } as Filter,
@@ -231,7 +231,7 @@ export async function prepareEvent(
   const cipherText = await nip04.encrypt(secretKey, pubkey, content);
 
   const event: Event = {
-    kind: 4,
+    kind: 24133,
     created_at: now(),
     pubkey: getPublicKey(secretKey),
     tags: [['p', pubkey]],
