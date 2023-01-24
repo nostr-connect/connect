@@ -159,10 +159,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.0.tgz#d15357f7c227e751d90aa06b05a0e5cf993ba8c1"
   integrity sha512-kbacwGSsH/CTout0ZnZWxnW1B+jH/7r/WAAKLBtrRJ/+CUH7lgmQzl3GTrQua3SGKWNSDsS6lmjnDpIJ5Dxyaw==
 
-"@nostr-connect/connect@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@nostr-connect/connect/-/connect-0.2.0.tgz#01d2abd648a30e467837763bb1cbeb8b2c8f806c"
-  integrity sha512-0OpzpsmCWuTYynZAzX3kA+VVIbChHXtIh/9N1tf3k9IwuIKU2amU6qIKsn42/2kH/kiWzbxUIdAEvoY10C7acQ==
+"@nostr-connect/connect@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@nostr-connect/connect/-/connect-0.2.1.tgz#e3950a2fe0d964b64e33bf29670f3af680f965c2"
+  integrity sha512-lwPTSBaJH0NUKtI0VcJIFPrTia9B96kNULme1RcGiW894yJLDeaIn5RsuoBe0gkkKl74xwEJu91/MzjVtd3GGg==
   dependencies:
     events "^3.3.0"
     nostr-tools "^1.0.1"
