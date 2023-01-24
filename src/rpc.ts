@@ -62,9 +62,9 @@ export class NostrRPC {
     const request = prepareRequest(id, method, params);
     const event = await prepareEvent(this.self.secret, target, request);
 
-    await broadcastToRelay(relay, event);
 
-    // waiting for response from remote
+    await broadcastToRelay(relay, event, opts?.skipResponse);
+    // skip waiting for response from remote
     if (opts && opts.skipResponse === true) return Promise.resolve();
 
     return new Promise<void>((resolve, reject) => {
@@ -292,13 +292,14 @@ export async function connectToRelay(realayURL: string) {
   });
   return relay;
 }
-export async function broadcastToRelay(relay: Relay, event: Event) {
+export async function broadcastToRelay(relay: Relay, event: Event, skipSeen: boolean = false) {
   // send request via relay
   return await new Promise<void>((resolve, reject) => {
     relay.on('error', () => {
       reject(new Error(`failed to connect to ${relay.url}`));
     });
     const pub = relay.publish(event);
+    if (skipSeen) resolve();
     pub.on('failed', (reason: any) => {
       reject(reason);
     });
