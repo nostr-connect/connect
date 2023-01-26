@@ -157,15 +157,7 @@ export class NostrRPC {
       );
 
       // send response via relay
-      await new Promise<void>((resolve, reject) => {
-        const pub = relay.publish(responseEvent);
-        pub.on('failed', (reason: any) => {
-          reject(reason);
-        });
-        pub.on('seen', () => {
-          resolve();
-        });
-      });
+      relay.publish(responseEvent);
     });
 
     return sub;
