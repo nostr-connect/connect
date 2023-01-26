@@ -62,11 +62,7 @@ export class NostrRPC {
     const request = prepareRequest(id, method, params);
     const event = await prepareEvent(this.self.secret, target, request);
 
-    await broadcastToRelay(relay, event, opts?.skipResponse);
-    // skip waiting for response from remote
-    if (opts && opts.skipResponse === true) return Promise.resolve();
-
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       const sub = relay.sub([
         {
           kinds: [24133],
@@ -75,6 +71,11 @@ export class NostrRPC {
           limit: 1,
         } as Filter,
       ]);
+
+      await broadcastToRelay(relay, event, true);
+
+      // skip waiting for response from remote
+      if (opts && opts.skipResponse === true) resolve();
 
       sub.on('event', async (event: Event) => {
         let payload;
