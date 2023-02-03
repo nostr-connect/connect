@@ -24,6 +24,7 @@ const App = () => {
   const [pubkey, setPubkey] = useStatePersist('@pubkey', '');
   const [getPublicKeyReply, setGetPublicKeyReply] = useState('');
   const [eventWithSig, setEvent] = useState({});
+  const [schnorrSig, setSchnorrSig] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -77,6 +78,29 @@ const App = () => {
       await broadcastToRelay(relay, event, true);
 
       setEvent(event);
+    } catch (error) {
+      console.error(error);
+    }
+
+  }
+
+  const getSchnorrSig = async () => {
+    try {
+      if (pubkey.length === 0) return;
+
+      const connect = new Connect({
+        secretKey,
+        target: pubkey,
+      });
+
+      const sig = await connect.rpc.call({
+        target: pubkey,
+        request: {
+          method: 'sign_schnorr',
+          params: ['Hello World'],
+        }
+      });
+      setSchnorrSig(sig);
     } catch (error) {
       console.error(error);
     }
@@ -170,6 +194,21 @@ const App = () => {
                   rows={12}
                   defaultValue={JSON.stringify(eventWithSig, null, 2)}
                 />
+              }
+            </div>
+            <div className='content'>
+              <h2 className='title is-5 has-text-white'>Get a Schnorr signature for the message <b>Hello World</b></h2>
+              <button className='button is-info' onClick={getSchnorrSig}>
+                Sign Schnorr
+              </button>
+              {
+                Object.keys(schnorrSig).length > 0 &&
+                <input
+                className='input is-info mt-3'
+                type='text'
+                value={schnorrSig}
+                readOnly
+              />
               }
             </div>
           </div>
