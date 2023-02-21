@@ -25,6 +25,7 @@ const App = () => {
   const [getPublicKeyReply, setGetPublicKeyReply] = useState('');
   const [eventWithSig, setEvent] = useState({});
   const [schnorrSig, setSchnorrSig] = useState('');
+  const [delegationSig, setDelegateSig] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -104,7 +105,34 @@ const App = () => {
     } catch (error) {
       console.error(error);
     }
+  }
 
+  const delegate = async () => {
+    try {
+      if (pubkey.length === 0) return;
+
+      const connect = new Connect({
+        secretKey,
+        target: pubkey,
+      });
+
+      const sig = await connect.rpc.call({
+        target: pubkey,
+        request: {
+          method: 'delegate',
+          params: [
+            getPublicKey(secretKey),
+            {
+              kind: 0,
+              until: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
+            }
+          ],
+        }
+      });
+      setDelegateSig(sig);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   const isConnected = () => {
@@ -207,6 +235,21 @@ const App = () => {
                 className='input is-info mt-3'
                 type='text'
                 value={schnorrSig}
+                readOnly
+              />
+              }
+            </div>
+            <div className='content'>
+              <h2 className='title is-5 has-text-white'>Delegate this app to make signature for 1 day</h2>
+              <button className='button is-info' onClick={delegate}>
+                Delegate
+              </button>
+              {
+                Object.keys(delegationSig).length > 0 &&
+                <input
+                className='input is-info mt-3'
+                type='text'
+                value={delegationSig}
                 readOnly
               />
               }
