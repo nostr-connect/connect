@@ -6,17 +6,17 @@ import * as ReactDOM from 'react-dom';
 import { broadcastToRelay, Connect, connectToRelay, ConnectURI, TimeRanges } from '../src/index';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { getEventHash, getPublicKey, Event } from 'nostr-tools';
+import { getEventHash, getPublicKey, Event, nip19 } from 'nostr-tools';
 
 const secretKey = "5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3";
 const connectURI = new ConnectURI({
   target: getPublicKey(secretKey),
   relay: 'wss://nostr.vulpem.com',
   metadata: {
-    name: 'Example',
-    description: '🔉🔉🔉',
-    url: 'https://example.com',
-    icons: ['https://example.com/icon.png'],
+    name: 'Vulpem',
+    description: 'Bitcoin company',
+    url: 'https://vulpem.com',
+    icons: ['https://vulpem.com/favicon.ico'],
   },
 });
 
@@ -54,7 +54,7 @@ const App = () => {
       target: pubkey,
     });
     const pk = await connect.getPublicKey();
-    setGetPublicKeyReply(pk);
+    setGetPublicKeyReply(nip19.npubEncode(pk));
   }
 
   const sendMessage = async () => {
@@ -120,7 +120,7 @@ const App = () => {
         getPublicKey(secretKey),
         {
           kind: 1,
-          until: TimeRanges.ONE_MONTH,
+          until: TimeRanges.ONE_DAY,
         }
       );
       setDelegateSig(sig);
@@ -152,6 +152,7 @@ const App = () => {
       });
   }
 
+  const appEpehemeralPubKey = nip19.npubEncode(getPublicKey(secretKey));
   return (
     <div className='hero is-fullheight has-background-black has-text-white'>
       <section className="container">
@@ -159,7 +160,7 @@ const App = () => {
           <h1 className='title has-text-white'>Nostr Connect Playground</h1>
         </div>
         <div className='content'>
-          <p className='subtitle is-6 has-text-white'><b>Nostr ID</b> {getPublicKey(secretKey)}</p>
+          <p className='subtitle is-6 has-text-white'><b>Nostr ID (ephemeral)</b> {appEpehemeralPubKey}</p>
         </div>
         <div className='content'>
           <p className='subtitle is-6 has-text-white'><b>Status</b> {isConnected() ? '🟢 Connected' : '🔴 Disconnected'}</p>

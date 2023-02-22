@@ -11,17 +11,21 @@ export interface Metadata {
 }
 
 export enum TimeRanges {
-  ONE_MIN = '1min',
   FIVE_MINS = '5mins',
-  FIFTEEN_MINS = '15mins',
-  THIRTY_MINS = '30mins',
   ONE_HR = '1hour',
-  THREE_HRS = '3hours',
   ONE_DAY = '1day',
   ONE_WEEK = '1week',
   ONE_MONTH = '1month',
   ONE_YEAR = '1year',
 }
+export const TimeRangeToUnix: Record<TimeRanges, number> = {
+  [TimeRanges.FIVE_MINS]: Math.round(Date.now() / 1000) + 60 * 5,
+  [TimeRanges.ONE_HR]: Math.round(Date.now() / 1000) + 60 * 60,
+  [TimeRanges.ONE_DAY]: Math.round(Date.now() / 1000) + 60 * 60 * 24,
+  [TimeRanges.ONE_WEEK]: Math.round(Date.now() / 1000) + 60 * 60 * 24 * 7,
+  [TimeRanges.ONE_MONTH]: Math.round(Date.now() / 1000) + 60 * 60 * 24 * 30,
+  [TimeRanges.ONE_YEAR]: Math.round(Date.now() / 1000) + 60 * 60 * 24 * 365,
+};
 
 export class ConnectURI {
   target: string;
@@ -244,6 +248,21 @@ export class Connect {
     }
   ): Promise<string> {
     if (!this.target) throw new Error('Not connected');
+
+    if (conditions.until && typeof conditions.until !== 'number') {
+      if (!Object.keys(TimeRangeToUnix).includes(conditions.until))
+        throw new Error(
+          'conditions.until must be either a number or a valid TimeRange'
+        );
+      conditions.until = TimeRangeToUnix[conditions.until];
+    }
+    if (conditions.since && typeof conditions.since !== 'number') {
+      if (!Object.keys(TimeRangeToUnix).includes(conditions.since))
+        throw new Error(
+          'conditions.since must be either a number or a valid TimeRange'
+        );
+      conditions.since = TimeRangeToUnix[conditions.since];
+    }
 
     const sig = await this.rpc.call({
       target: this.target,

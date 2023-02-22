@@ -114,10 +114,10 @@ describe('Connect', () => {
     await connect.init();
 
     sleep(1500);
-    // send the delegate message to the mobile app from the web to ask for permission to sign kind 1 notes on behalf of the user for 15 mins
+    // send the delegate message to the mobile app from the web to ask for permission to sign kind 1 notes on behalf of the user for 5 mins
     const sig = await connect.delegate(webPK, {
       kind: 1,
-      until: TimeRanges.FIFTEEN_MINS,
+      until: TimeRanges.FIVE_MINS,
     });
     expect(sig).toBeTruthy();
   });
