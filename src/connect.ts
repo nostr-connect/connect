@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { Event, getPublicKey, nip04 } from 'nostr-tools';
+import { Event, getPublicKey, nip04, Kind } from 'nostr-tools';
 
 import { isValidRequest, NostrRPC } from './rpc';
 
@@ -212,7 +212,13 @@ export class Connect {
     return response as string;
   }
 
-  async signEvent(event: Event): Promise<string> {
+  async signEvent(event: {
+    kind: Kind;
+    tags: string[][];
+    pubkey: string;
+    content: string;
+    created_at: number;
+  }): Promise<string> {
     if (!this.target) throw new Error('Not connected');
 
     const signature = await this.rpc.call({
