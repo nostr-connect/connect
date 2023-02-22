@@ -2,7 +2,7 @@ import { getPublicKey, signEvent, Event, nip26 } from 'nostr-tools';
 import { Connect, ConnectURI, NostrSigner, TimeRanges } from '../src';
 import { sleep } from './utils';
 
-jest.setTimeout(5000);
+jest.setTimeout(7500);
 
 // web app (this is ephemeral and represents the currention session)
 const webSK =
@@ -81,17 +81,20 @@ describe('ConnectURI', () => {
 
 describe('Connect', () => {
   beforeAll(async () => {
-    // start listening for connect messages on the mobile app
-    const remoteHandler = new MobileHandler({
-      secretKey: mobileSK,
-      relay: 'wss://nostr.vulpem.com',
-    });
-    await remoteHandler.listen();
-
-    sleep(1500);
+    try {
+      // start listening for connect messages on the mobile app
+      const remoteHandler = new MobileHandler({
+        secretKey: mobileSK,
+        relay: 'wss://nostr.vulpem.com',
+      });
+      await remoteHandler.listen();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   });
 
-  it('returns pubkey', async () => {
+  it('returns pubkey and delegation', async () => {
     // start listening for connect messages on the web app
     const connect = new Connect({
       secretKey: webSK,
@@ -99,21 +102,12 @@ describe('Connect', () => {
     });
     await connect.init();
 
-    sleep(1500);
+    sleep(1000);
+
     // send the get_public_key message to the mobile app from the web
     const pubkey = await connect.getPublicKey();
     expect(pubkey).toBe(mobilePK);
-  });
 
-  it('returns delgation signature', async () => {
-    // start listening for connect messages on the web app
-    const connect = new Connect({
-      secretKey: webSK,
-      target: mobilePK,
-    });
-    await connect.init();
-
-    sleep(1500);
     // send the delegate message to the mobile app from the web to ask for permission to sign kind 1 notes on behalf of the user for 5 mins
     const sig = await connect.delegate(webPK, {
       kind: 1,
