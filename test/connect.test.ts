@@ -1,8 +1,8 @@
-import { getPublicKey, signEvent, Event } from 'nostr-tools';
-import { Connect, ConnectURI, NostrSigner } from '../src';
+import { getPublicKey, signEvent, Event, nip26 } from 'nostr-tools';
+import { Connect, ConnectURI, NostrSigner, TimeRanges } from '../src';
 import { sleep } from './utils';
 
-jest.setTimeout(5000);
+jest.setTimeout(7500);
 
 // web app (this is ephemeral and represents the currention session)
 const webSK =
@@ -21,27 +21,34 @@ class MobileHandler extends NostrSigner {
     return getPublicKey(this.self.secret);
   }
   async sign_event(event: any): Promise<string> {
-    if (!this.event) throw new Error('No origin event');
-
-    // emit event to the UI to show a modal
-    this.events.emit('sign_event_request', event);
-
-    // wait for the user to approve or reject the request
-    return new Promise((resolve, reject) => {
-      // listen for user acceptance
-      this.events.on('sign_event_approve', () => {
-        resolve(signEvent(event, this.self.secret));
-      });
-
-      // or rejection
-      this.events.on('sign_event_reject', () => {
-        reject(new Error('User rejected request'));
-      });
-    });
+    const sigEvt = signEvent(event, this.self.secret);
+    return Promise.resolve(sigEvt);
+  }
+  async delegate(
+    delegatee: string,
+    conditions: {
+      kind?: number;
+      until?: number;
+      since?: number;
+    }
+  ): Promise<string> {
+    const delegateParameters: nip26.Parameters = {
+      pubkey: delegatee,
+      kind: conditions.kind,
+      since: conditions.since || Math.round(Date.now() / 1000),
+      until:
+        conditions.until ||
+        Math.round(Date.now() / 1000) + 60 * 60 * 24 * 30 /* 30 days */,
+    };
+    const delegation = nip26.createDelegation(
+      this.self.secret,
+      delegateParameters
+    );
+    return Promise.resolve(delegation.sig);
   }
 }
 
-describe('Nostr Connect', () => {
+describe('ConnectURI', () => {
   it('roundtrip connectURI', async () => {
     const connectURI = new ConnectURI({
       target: `b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4`,
@@ -70,6 +77,45 @@ describe('Nostr Connect', () => {
       'https://vulpem.com/1000x860-p-500.422be1bc.png'
     );
   });
+});
+
+describe('Connect', () => {
+  beforeAll(async () => {
+    try {
+      // start listening for connect messages on the mobile app
+      const remoteHandler = new MobileHandler({
+        secretKey: mobileSK,
+        relay: 'wss://nostr.vulpem.com',
+      });
+      await remoteHandler.listen();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  });
+
+  it('returns pubkey and delegation', async () => {
+    // start listening for connect messages on the web app
+    const connect = new Connect({
+      secretKey: webSK,
+      target: mobilePK,
+    });
+    await connect.init();
+
+    sleep(1000);
+
+    // send the get_public_key message to the mobile app from the web
+    const pubkey = await connect.getPublicKey();
+    expect(pubkey).toBe(mobilePK);
+
+    // send the delegate message to the mobile app from the web to ask for permission to sign kind 1 notes on behalf of the user for 5 mins
+    const sig = await connect.delegate(webPK, {
+      kind: 1,
+      until: TimeRanges.FIVE_MINS,
+    });
+    expect(sig).toBeTruthy();
+  });
+
   it.skip('connect', async () => {
     const testHandler = jest.fn();
 
@@ -95,31 +141,6 @@ describe('Nostr Connect', () => {
 
     expect(testHandler).toBeCalledTimes(1);
   });
-
-  it('returns pubkey', async () => {
-    // start listening for connect messages on the mobile app
-    const remoteHandler = new MobileHandler({
-      secretKey: mobileSK,
-      relay: 'wss://nostr.vulpem.com',
-    });
-    await remoteHandler.listen();
-
-    await sleep(1000);
-
-    // start listening for connect messages on the web app
-    const connect = new Connect({
-      secretKey: webSK,
-      target: mobilePK,
-    });
-    await connect.init();
-
-    await sleep(1000);
-
-    // send the get_public_key message to the mobile app from the web
-    const pubkey = await connect.getPublicKey();
-    expect(pubkey).toBe(mobilePK);
-  });
-
   it.skip('returns a signed event', async () => {
     // start listening for connect messages on the mobile app
     const remoteHandler = new MobileHandler({
@@ -164,36 +185,3 @@ describe('Nostr Connect', () => {
     expect(event).toBeDefined();
   });
 });
-
-/*    
-       expect(handler).toBeCalledTimes(1);
-    expect(handler).toBeCalledWith({
-      type: ConnectMessageType.PAIRED,
-      value: {
-        pubkey: mobilePK,
-      }
-    });
-
-        const pubkey = await connect.getPublicKey();
-    expect(pubkey).toBe(mobilePK);
-    const signedEvt = await connect.signEvent({});
-       const relays = await connect.getRelays();
-       
-       const plainText = "hello 🌍";
-       const cipherText = await connect.nip04.encrypt(childPK, plainText);
-       const plainText2 = await connect.nip04.decrypt(childPK, cipherText);
-       expect(plainText === plainText2).toBeTruthy();
- 
-       await connect.request({
-         method: 'signSchnorr',
-         params: [
-           '0x000000',
-           '0x000000'
-         ]
-       }); 
-       
-
-        sessionWeb.on(ConnectMessageType.UNPAIRED, () => {
-        });
-
-       */
