@@ -228,6 +228,8 @@ export async function prepareEvent(
     pubkey: getPublicKey(secretKey),
     tags: [['p', pubkey]],
     content: cipherText,
+    id: '',
+    sig: '',
   };
 
   const id = getEventHash(event);
@@ -299,7 +301,7 @@ export async function broadcastToRelay(
     pub.on('failed', (reason: any) => {
       reject(reason);
     });
-    pub.on('seen', () => {
+    pub.on('ok', () => {
       resolve();
     });
   });

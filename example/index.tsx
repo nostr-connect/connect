@@ -71,7 +71,9 @@ const App = () => {
         pubkey: pubkey,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
-        content: "Running Nostr Connect 🔌"
+        content: "Running Nostr Connect 🔌",
+        id: '',
+        sig: '',
       };
       event.id = getEventHash(event)
       event.sig = await connect.signEvent(event);
