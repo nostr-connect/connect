@@ -10,6 +10,19 @@ export interface Metadata {
   icons?: string[];
 }
 
+export enum TimeRanges {
+  ONE_MIN = '1min',
+  FIVE_MINS = '5mins',
+  FIFTEEN_MINS = '15mins',
+  THIRTY_MINS = '30mins',
+  ONE_HR = '1hour',
+  THREE_HRS = '3hours',
+  ONE_DAY = '1day',
+  ONE_WEEK = '1week',
+  ONE_MONTH = '1month',
+  ONE_YEAR = '1year',
+}
+
 export class ConnectURI {
   target: string;
   metadata: Metadata;
@@ -207,6 +220,39 @@ export class Connect {
     });
 
     return signature as string;
+  }
+
+  async describe(): Promise<string[]> {
+    if (!this.target) throw new Error('Not connected');
+
+    const response = await this.rpc.call({
+      target: this.target,
+      request: {
+        method: 'describe',
+        params: [],
+      },
+    });
+    return response as string[];
+  }
+
+  async delegate(
+    delegatee: string = this.rpc.self.pubkey,
+    conditions: {
+      kind?: number;
+      until?: number | TimeRanges;
+      since?: number | TimeRanges;
+    }
+  ): Promise<string> {
+    if (!this.target) throw new Error('Not connected');
+
+    const sig = await this.rpc.call({
+      target: this.target,
+      request: {
+        method: 'delegate',
+        params: [delegatee, conditions],
+      },
+    });
+    return sig as string;
   }
 
   async getRelays(): Promise<{

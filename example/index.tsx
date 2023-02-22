@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStatePersist } from 'use-state-persist';
 
 import * as ReactDOM from 'react-dom';
-import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '@nostr-connect/connect';
+import { broadcastToRelay, Connect, connectToRelay, ConnectURI, TimeRanges } from '../src/index';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventHash, getPublicKey, Event } from 'nostr-tools';
@@ -116,19 +116,13 @@ const App = () => {
         target: pubkey,
       });
 
-      const sig = await connect.rpc.call({
-        target: pubkey,
-        request: {
-          method: 'delegate',
-          params: [
-            getPublicKey(secretKey),
-            {
-              kind: 0,
-              until: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
-            }
-          ],
+      const sig = await connect.delegate(
+        getPublicKey(secretKey),
+        {
+          kind: 1,
+          until: TimeRanges.ONE_MONTH,
         }
-      });
+      );
       setDelegateSig(sig);
     } catch (error) {
       console.error(error);

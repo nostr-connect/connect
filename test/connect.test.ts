@@ -1,5 +1,5 @@
 import { getPublicKey, signEvent, Event } from 'nostr-tools';
-import { Connect, ConnectURI, NostrSigner } from '../src';
+import { Connect, ConnectURI, NostrSigner, TimeRanges } from '../src';
 import { sleep } from './utils';
 
 jest.setTimeout(5000);
@@ -70,31 +70,6 @@ describe('Nostr Connect', () => {
       'https://vulpem.com/1000x860-p-500.422be1bc.png'
     );
   });
-  it.skip('connect', async () => {
-    const testHandler = jest.fn();
-
-    // start listening for connect messages on the web app
-    const connect = new Connect({ secretKey: webSK });
-    connect.events.on('connect', testHandler);
-    await connect.init();
-
-    await sleep(100);
-
-    // send the connect message to the web app from the mobile
-    const connectURI = new ConnectURI({
-      target: webPK,
-      relay: 'wss://nostr.vulpem.com',
-      metadata: {
-        name: 'My Website',
-        description: 'lorem ipsum dolor sit amet',
-        url: 'https://vulpem.com',
-        icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png'],
-      },
-    });
-    await connectURI.approve(mobileSK);
-
-    expect(testHandler).toBeCalledTimes(1);
-  });
 
   it('returns pubkey', async () => {
     // start listening for connect messages on the mobile app
@@ -120,6 +95,58 @@ describe('Nostr Connect', () => {
     expect(pubkey).toBe(mobilePK);
   });
 
+  it('returns delgation signature', async () => {
+    // start listening for connect messages on the mobile app
+    const remoteHandler = new MobileHandler({
+      secretKey: mobileSK,
+      relay: 'wss://nostr.vulpem.com',
+    });
+    await remoteHandler.listen();
+
+    await sleep(1000);
+
+    // start listening for connect messages on the web app
+    const connect = new Connect({
+      secretKey: webSK,
+      target: mobilePK,
+    });
+    await connect.init();
+
+    await sleep(1000);
+
+    // send the delegate message to the mobile app from the web to ask for permission to sign kind 1 notes on behalf of the user for 15 mins
+    const sig = await connect.delegate(webPK, {
+      kind: 1,
+      until: TimeRanges.FIFTEEN_MINS,
+    });
+    expect(sig).toBeTruthy();
+  });
+
+  it.skip('connect', async () => {
+    const testHandler = jest.fn();
+
+    // start listening for connect messages on the web app
+    const connect = new Connect({ secretKey: webSK });
+    connect.events.on('connect', testHandler);
+    await connect.init();
+
+    await sleep(100);
+
+    // send the connect message to the web app from the mobile
+    const connectURI = new ConnectURI({
+      target: webPK,
+      relay: 'wss://nostr.vulpem.com',
+      metadata: {
+        name: 'My Website',
+        description: 'lorem ipsum dolor sit amet',
+        url: 'https://vulpem.com',
+        icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png'],
+      },
+    });
+    await connectURI.approve(mobileSK);
+
+    expect(testHandler).toBeCalledTimes(1);
+  });
   it.skip('returns a signed event', async () => {
     // start listening for connect messages on the mobile app
     const remoteHandler = new MobileHandler({
@@ -164,36 +191,3 @@ describe('Nostr Connect', () => {
     expect(event).toBeDefined();
   });
 });
-
-/*    
-       expect(handler).toBeCalledTimes(1);
-    expect(handler).toBeCalledWith({
-      type: ConnectMessageType.PAIRED,
-      value: {
-        pubkey: mobilePK,
-      }
-    });
-
-        const pubkey = await connect.getPublicKey();
-    expect(pubkey).toBe(mobilePK);
-    const signedEvt = await connect.signEvent({});
-       const relays = await connect.getRelays();
-       
-       const plainText = "hello 🌍";
-       const cipherText = await connect.nip04.encrypt(childPK, plainText);
-       const plainText2 = await connect.nip04.decrypt(childPK, cipherText);
-       expect(plainText === plainText2).toBeTruthy();
- 
-       await connect.request({
-         method: 'signSchnorr',
-         params: [
-           '0x000000',
-           '0x000000'
-         ]
-       }); 
-       
-
-        sessionWeb.on(ConnectMessageType.UNPAIRED, () => {
-        });
-
-       */
