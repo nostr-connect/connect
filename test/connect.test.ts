@@ -36,9 +36,14 @@ class MobileHandler extends NostrSigner {
       pubkey: delegatee,
       kind: conditions.kind,
       since: conditions.since || Math.round(Date.now() / 1000),
-      until: conditions.until || Math.round(Date.now() / 1000) + 60 * 60 * 24 * 30 /* 30 days */,
+      until:
+        conditions.until ||
+        Math.round(Date.now() / 1000) + 60 * 60 * 24 * 30 /* 30 days */,
     };
-    const delegation = nip26.createDelegation(this.self.secret, delegateParameters);
+    const delegation = nip26.createDelegation(
+      this.self.secret,
+      delegateParameters
+    );
     return Promise.resolve(delegation.sig);
   }
 }
@@ -74,7 +79,6 @@ describe('ConnectURI', () => {
   });
 });
 
-
 describe('Connect', () => {
   beforeAll(async () => {
     // start listening for connect messages on the mobile app
@@ -85,7 +89,6 @@ describe('Connect', () => {
     await remoteHandler.listen();
 
     sleep(1500);
-
   });
 
   it('returns pubkey', async () => {
@@ -103,7 +106,6 @@ describe('Connect', () => {
   });
 
   it('returns delgation signature', async () => {
-
     // start listening for connect messages on the web app
     const connect = new Connect({
       secretKey: webSK,
@@ -119,7 +121,6 @@ describe('Connect', () => {
     });
     expect(sig).toBeTruthy();
   });
-
 
   it.skip('connect', async () => {
     const testHandler = jest.fn();
