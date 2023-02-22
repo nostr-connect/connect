@@ -86,7 +86,7 @@ As per [NIP-46](https://github.com/nostr-connect/nips/blob/nostr-connect/46.md),
 
 You need to define these methods in your app, each method must return a `Promise` that resolves to the expected result.
 
-The NostrRPC class provides access to the Nostr public key via `this.self.pubkey`, the Nostr private key via `this.self.secret` and the full Nostr event that originated the current request.  You can access the event using the `this.event` property.
+The NostrSigner class provides access to the Nostr public key via `this.self.pubkey`, the Nostr private key via `this.self.secret` and the full Nostr event that originated the current request.  You can access the event using the `this.event` property.
 
 It's best to ask approval from the user before signing an event. To do so, you can emit an event to the UI and wait for the user to approve or reject the request.
 
