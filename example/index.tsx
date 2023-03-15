@@ -76,7 +76,7 @@ const App = () => {
         sig: '',
       };
       event.id = getEventHash(event)
-      event.sig = await connect.signEvent(event);
+      event.sig = (await connect.signEvent(event)).sig;
       const relay = await connectToRelay('wss://relay.damus.io');
       await broadcastToRelay(relay, event, true);
 

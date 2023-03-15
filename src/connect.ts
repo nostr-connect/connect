@@ -1,11 +1,12 @@
 import EventEmitter from 'events';
 import { Event, getPublicKey, nip04, Kind } from 'nostr-tools';
+import { nip26 } from 'nostr-tools';
 
 import { isValidRequest, NostrRPC } from './rpc';
 
 export interface Metadata {
   name: string;
-  url: string;
+  url?: string;
   description?: string;
   icons?: string[];
 }
@@ -218,10 +219,10 @@ export class Connect {
     pubkey: string;
     content: string;
     created_at: number;
-  }): Promise<string> {
+  }): Promise<Event> {
     if (!this.target) throw new Error('Not connected');
 
-    const signature = await this.rpc.call({
+    const eventWithSig = await this.rpc.call({
       target: this.target,
       request: {
         method: 'sign_event',
@@ -229,7 +230,7 @@ export class Connect {
       },
     });
 
-    return signature as string;
+    return eventWithSig as Event;
   }
 
   async describe(): Promise<string[]> {
@@ -252,7 +253,7 @@ export class Connect {
       until?: number | TimeRanges;
       since?: number | TimeRanges;
     }
-  ): Promise<string> {
+  ): Promise<nip26.Delegation> {
     if (!this.target) throw new Error('Not connected');
 
     if (conditions.until && typeof conditions.until !== 'number') {
@@ -270,14 +271,14 @@ export class Connect {
       conditions.since = TimeRangeToUnix[conditions.since];
     }
 
-    const sig = await this.rpc.call({
+    const delegation = await this.rpc.call({
       target: this.target,
       request: {
         method: 'delegate',
         params: [delegatee, conditions],
       },
     });
-    return sig as string;
+    return delegation as nip26.Delegation;
   }
 
   async getRelays(): Promise<{
