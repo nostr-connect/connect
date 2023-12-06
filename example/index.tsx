@@ -6,9 +6,9 @@ import * as ReactDOM from 'react-dom';
 import { broadcastToRelay, Connect, connectToRelay, ConnectURI } from '@nostr-connect/connect';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { getEventHash, getPublicKey, Event } from 'nostr-tools';
+import { getEventHash, getPublicKey, generatePrivateKey, Event } from 'nostr-tools';
 
-const secretKey = "5acff99d1ad3e1706360d213fd69203312d9b5e91a2d5f2e06100cc6f686e5b3";
+const secretKey = generatePrivateKey();
 const connectURI = new ConnectURI({
   target: getPublicKey(secretKey),
   relay: 'wss://nostr.vulpem.com',
@@ -161,21 +161,21 @@ const App = () => {
   }
 
   return (
-    <div className='hero is-fullheight has-background-black has-text-white'>
+    <div className='hero is-fullheight has-text-dark'>
       <section className="container">
         <div className='content'>
-          <h1 className='title has-text-white'>Nostr Connect Playground</h1>
+          <h1 className='title'>Nostr Connect Playground</h1>
         </div>
         <div className='content'>
-          <p className='subtitle is-6 has-text-white'><b>Nostr ID</b> {getPublicKey(secretKey)}</p>
+          <p className='subtitle is-6'><b>Nostr ID</b> {getPublicKey(secretKey)}</p>
         </div>
         <div className='content'>
-          <p className='subtitle is-6 has-text-white'><b>Status</b> {isConnected() ? '🟢 Connected' : '🔴 Disconnected'}</p>
+          <p className='subtitle is-6'><b>Status</b> {isConnected() ? '🟢 Connected' : '🔴 Disconnected'}</p>
         </div>
        {
        isConnected() && <div className='content'>
           <button className='button is-danger' onClick={disconnect}>
-            <p className='subtitle is-6 has-text-white'>💤 <i>Disconnect</i></p>
+            <p className='subtitle is-6'>💤 <i>Disconnect</i></p>
           </button>
         </div>
         }
@@ -183,7 +183,8 @@ const App = () => {
           <div className='notification is-dark'>
             <h2 className='title is-5'>Connect with Nostr</h2>
 
-            <QRCodeSVG value={connectURI.toString()} />
+
+            <QRCodeSVG value={connectURI.toString()} includeMargin={true} />
             <input
               className='input is-info'
               type='text'
