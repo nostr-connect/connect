@@ -214,7 +214,7 @@ export class Connect {
   }
 
   async signEvent(event: {
-    kind: Kind;
+    kind: number;
     tags: string[][];
     pubkey: string;
     content: string;

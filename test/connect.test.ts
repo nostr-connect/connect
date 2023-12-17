@@ -1,4 +1,4 @@
-import { getPublicKey, signEvent, Event, nip26 } from 'nostr-tools';
+import { getPublicKey, getSignature, Event, nip26 } from 'nostr-tools';
 import { Connect, ConnectURI, NostrSigner, TimeRanges } from '../src';
 import { sleep } from './utils';
 
@@ -21,7 +21,7 @@ class MobileHandler extends NostrSigner {
     return getPublicKey(this.self.secret);
   }
   async sign_event(event: any): Promise<string> {
-    const sigEvt = signEvent(event, this.self.secret);
+    const sigEvt = getSignature(event, this.self.secret);
     return Promise.resolve(sigEvt);
   }
   async delegate(
