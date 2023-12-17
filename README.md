@@ -92,7 +92,7 @@ It's best to ask approval from the user before signing an event. To do so, you c
 
 ```typescript
 import { NostrSigner } from '@nostr-connect/connect';
-import { getPublicKey, signEvent, nip06 } from 'nostr-tools';
+import { getPublicKey, getSignature, nip06 } from 'nostr-tools';
 
 const sk = nip06.privateKeyFromSeedWords(myWords);
 
@@ -113,7 +113,7 @@ class MobileHandler extends NostrSigner {
       
       // listen for user accept 
       this.events.on('sign_event_approve', () => {
-        resolve(signEvent(event, this.self.secret));
+        resolve(getSignature(event, this.self.secret));
       });
 
       // or reject

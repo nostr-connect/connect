@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { Event, getPublicKey, nip04, Kind } from 'nostr-tools';
+import { getPublicKey, Event, nip04 } from 'nostr-tools';
 import { nip26 } from 'nostr-tools';
 
 import { isValidRequest, NostrRPC } from './rpc';

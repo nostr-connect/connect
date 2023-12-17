@@ -296,13 +296,7 @@ export async function broadcastToRelay(
     relay.on('error', () => {
       reject(new Error(`failed to connect to ${relay.url}`));
     });
-    const pub = relay.publish(event);
-    if (skipSeen) resolve();
-    pub.on('failed', (reason: any) => {
-      reject(reason);
-    });
-    pub.on('ok', () => {
-      resolve();
-    });
+    relay.publish(event);
+    resolve();
   });
 }
